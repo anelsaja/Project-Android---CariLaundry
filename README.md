@@ -8,6 +8,7 @@ Anggota Kelompok
 - 71220925 - Anjelita Haninuna
 - 71220928 - Natanael
 - 71220963 - Samuel Pether Tahalea
+
 ---
 
 ## 📱 Tentang Project
