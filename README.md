@@ -2,7 +2,6 @@
 # CariLaundry App
 
 ## 👤 Identitas Mahasiswa
-
 Anggota Kelompok
 - 71220826 - Hermanus Rangga Horo
 - 71220925 - Anjelita Haninuna
