@@ -19,7 +19,7 @@ class AppContainer {
 
     // Karena LaundryRepositoryImpl kamu pakai dummy data dan tidak butuh 'apiService',
     // cukup inisialisasi kosong saja: LaundryRepositoryImpl()
-    private val laundryRepository: LaundryRepository = LaundryRepositoryImpl()
+    val laundryRepository: LaundryRepository = LaundryRepositoryImpl()
 
     // --- BAGIAN USECASE ---
     val getLaundryListUseCase = GetLaundryListUseCase(laundryRepository)
