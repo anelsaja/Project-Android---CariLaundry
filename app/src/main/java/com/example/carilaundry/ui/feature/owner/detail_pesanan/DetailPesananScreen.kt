@@ -1,47 +1,31 @@
 package com.example.carilaundry.ui.feature.owner.detail_pesanan
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.carilaundry.R
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 
-@Immutable
+// Data class untuk Detail Pesanan Owner (Sama seperti sebelumnya)
 data class OwnerOrderDetail(
     val id: String,
-    val laundryName: String,
+    val customerName: String, // Diganti dari laundryName
     val service: String,
     val category: String,
     val duration: String,
@@ -56,143 +40,292 @@ data class OwnerOrderDetail(
     val totalText: String,
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailPesananScreen(
-    modifier: Modifier = Modifier,
-    detail: OwnerOrderDetail,
+    detail: OwnerOrderDetail = sampleOwnerOrder(), // Default value untuk preview
     onBack: () -> Unit = {},
     onProcessPickup: (String) -> Unit = {},
     onProcessProgress: (String) -> Unit = {},
     onComplete: (String) -> Unit = {}
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            TopAppBar(
-                title = { Text(text = "Detail Pesanan", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-            )
-
-            // Header card with laundry info
-            Card(
-                shape = RoundedCornerShape(10.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth()
+    Scaffold(
+        containerColor = Color(0xFFE0F7FA), // Warna Background sama dengan Customer
+        bottomBar = {
+            // ACTION BUTTONS FOR OWNER
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "L", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = detail.laundryName, fontWeight = FontWeight.SemiBold, color = Color.White)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = detail.address, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f))
-                    }
-                }
-            }
-
-            @Composable
-            fun infoRow(label: String, value: String) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = label, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White)
-                            .padding(12.dp)
-                    ) {
-                        Text(text = value, color = MaterialTheme.colorScheme.onBackground)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-            }
-
-            infoRow("Jenis Layanan", detail.service)
-            infoRow("Kategori Item", detail.category)
-            infoRow("Lama Cuci", detail.duration)
-            infoRow("Berat", "${detail.weightKg} kg")
-            infoRow("Catatan", if (detail.notes.isNotBlank()) detail.notes else "Tidak ada")
-
-            infoRow("Metode", detail.pickupMethod)
-            infoRow("Waktu", detail.time)
-            infoRow("Alamat", detail.address)
-            infoRow("Metode Pembayaran", detail.paymentMethod)
-
-            // Harga summary
-            Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Subtotal (${detail.weightKg} kg)")
-                        Text(text = detail.subtotalText)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Biaya Antar")
-                        Text(text = detail.deliveryFeeText)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Total", fontWeight = FontWeight.Bold)
-                        Text(text = detail.totalText, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Tombol 1: Jemput
                 Button(
                     onClick = { onProcessPickup(detail.id) },
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(text = "Proses Penjemputan", color = Color.White)
+                    Text("Proses Penjemputan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
-                Button(onClick = { /*jemput*/ }, modifier = Modifier.fillMaxWidth().height(44.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3399FF))) {
-                Button(onClick = { onProcessProgress(detail.id) }, modifier = Modifier.fillMaxWidth().height(44.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3399FF))) {
-                    Text(text = "Proses Pengerjaan", color = Color.White)
+
+                // Tombol 2: Proses
+                Button(
+                    onClick = { onProcessProgress(detail.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3399FF)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Proses Pengerjaan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
-                Button(onClick = { /*jemput*/ }, modifier = Modifier.fillMaxWidth().height(44.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853))) {
-                Button(onClick = { onComplete(detail.id) }, modifier = Modifier.fillMaxWidth().height(44.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853))) {
-                    Text(text = "Selesai", color = Color.White)
+
+                // Tombol 3: Selesai
+                Button(
+                    onClick = { onComplete(detail.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Selesai", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    ) { padding ->
+
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+
+            // HEADER
+            OwnerDetailHeader(onBack)
+
+            // INFO PELANGGAN CARD (Mirip LaundryInfoCard Customer)
+            CustomerInfoCard(detail)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- SECTION LAYANAN ---
+            SectionTitle("Detail Layanan")
+
+            InfoLabel("Jenis Layanan")
+            InfoValueBox(detail.service)
+
+            InfoLabel("Kategori Item")
+            InfoValueBox(detail.category)
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    InfoLabel("Berat")
+                    InfoValueBox("${detail.weightKg} kg")
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    InfoLabel("Durasi")
+                    InfoValueBox(detail.duration)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            InfoLabel("Catatan Pelanggan")
+            InfoValueBox(if (detail.notes.isNotEmpty()) detail.notes else "-")
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- SECTION PENGAMBILAN ---
+            SectionTitle("Info Pengambilan")
+
+            InfoLabel("Metode")
+            InfoValueBox(detail.pickupMethod)
+
+            InfoLabel("Waktu")
+            InfoValueBox(detail.time)
+
+            InfoLabel("Alamat")
+            InfoValueBox(detail.address, isMultiLine = true)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- SECTION PEMBAYARAN ---
+            SectionTitle("Metode Pembayaran")
+            InfoValueBox(detail.paymentMethod)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // --- SECTION HARGA ---
+            SectionTitle("Rincian Harga")
+            PricingSummaryCard(detail)
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+// ================= KOMPONEN OWNER =================
+
+@Composable
+fun OwnerDetailHeader(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.baseline_arrow_back_24),
+            contentDescription = "Back",
+            tint = Color(0xFF0D1B2A),
+            modifier = Modifier
+                .size(24.dp)
+                .align(Alignment.CenterStart)
+                .clickable { onBack() }
+        )
+        Text(
+            "Detail Pesanan",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0D1B2A),
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+
+@Composable
+fun CustomerInfoCard(detail: OwnerOrderDetail) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Row {
+            // Avatar Placeholder (Huruf Depan Nama)
+            Box(
+                modifier = Modifier
+                    .width(90.dp)
+                    .fillMaxHeight()
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = detail.customerName.take(1).uppercase(),
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF3F7EC2)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(Color(0xFF3F7EC2))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = detail.customerName,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = "Pelanggan",
+                    color = Color(0xFFE0E0E0),
+                    fontSize = 12.sp
+                )
             }
         }
     }
 }
 
-// Sample for preview
+// Read-only info box pengganti text field input
+@Composable
+fun InfoValueBox(text: String, isMultiLine: Boolean = false) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(if (isMultiLine) 80.dp else 50.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp)) // Border abu-abu
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = if (isMultiLine) Alignment.TopStart else Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            color = Color.Black
+        )
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+}
+
+@Composable
+fun PricingSummaryCard(detail: OwnerOrderDetail) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            PriceRow("Subtotal (${detail.weightKg} kg)", detail.subtotalText)
+            Spacer(modifier = Modifier.height(8.dp))
+            PriceRow("Biaya Antar", detail.deliveryFeeText)
+            Spacer(modifier = Modifier.height(8.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(8.dp))
+            PriceRow("Total", detail.totalText, bold = true)
+        }
+    }
+}
+
+@Composable
+fun PriceRow(label: String, value: String, bold: Boolean = false) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        Text(label, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp)
+        Text(value, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, fontSize = 14.sp)
+    }
+}
+
+@Composable
+fun SectionTitle(text: String) {
+    Text(
+        text,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF0D1B2A),
+        modifier = Modifier.padding(bottom = 8.dp)
+    )
+}
+
+@Composable
+fun InfoLabel(text: String) {
+    Text(
+        text,
+        fontSize = 12.sp,
+        color = Color(0xFF546E7A),
+        modifier = Modifier.padding(bottom = 4.dp)
+    )
+}
+
+// Sample Data Function
 fun sampleOwnerOrder() = OwnerOrderDetail(
     id = "ORD-001",
-    laundryName = "Laundry Wertwer",
+    customerName = "Mas Anel",
     service = "Cuci dan Lipat",
     category = "Baju dan Celana",
     duration = "3 Hari",
     weightKg = 5,
-    notes = "Tidak ada",
+    notes = "Jangan dicampur warna putih",
     pickupMethod = "Jemput",
     time = "05/11/2025",
     address = "Jl. Soekarno Hatta No. 15, Kampungin",
@@ -202,10 +335,10 @@ fun sampleOwnerOrder() = OwnerOrderDetail(
     totalText = "Rp 40.000"
 )
 
-
+@Preview(showBackground = true)
 @Composable
 fun DetailPesananOwnerPreview() {
     CariLaundryTheme {
-        DetailPesananScreen(detail = sampleOwnerOrder())
+        DetailPesananScreen()
     }
-}}}
+}
