@@ -1,4 +1,4 @@
-package com.example.carilaundry.ui.feature.customer.home
+package com.example.carilaundry.ui.feature.customer.home // Sesuaikan package kamu
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,36 +20,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.Laundry // IMPORT MODEL DARI DOMAIN
+import com.example.carilaundry.ui.AppViewModelProvider // IMPORT PROVIDER
 import com.example.carilaundry.ui.theme.Background
 import com.example.carilaundry.ui.theme.CariLaundryTheme
 import com.example.carilaundry.ui.theme.OnBackground
 import com.example.carilaundry.ui.theme.OnPrimary
 import com.example.carilaundry.ui.theme.Primary
 
-// ================== DATA MODEL ==================
-data class Laundry(
-    val id: String,
-    val name: String,
-    val address: String,
-    val distance: String,
-    val imageRes: Int
-)
-
-// ================== SCREEN ==================
+// ================== SCREEN UTAMA ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerHomeScreen(
-    items: List<Laundry> = sampleData(),
+    modifier: Modifier = Modifier,
+    // Inject ViewModel di sini
+    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onItemClick: (String) -> Unit = {},
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
+    // Ambil state dari ViewModel (Loading / Success / Error)
+    val homeUiState = viewModel.homeUiState
     var searchText by remember { mutableStateOf("") }
 
     Scaffold(
-        containerColor = Background
+        containerColor = Background,
+        modifier = modifier
     ) { innerPadding ->
 
         Column(
@@ -58,6 +57,7 @@ fun CustomerHomeScreen(
                 .fillMaxSize()
         ) {
 
+            // 1. Header & Search Bar (Selalu tampil)
             HomeHeader(
                 onFavoriteClick = onOpenFavorites,
                 onNotifClick = onOpenNotifications,
@@ -77,24 +77,51 @@ fun CustomerHomeScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(items) { item ->
-                    LaundryGridItem(
-                        item = item,
-                        onClick = { onItemClick(item.id) }
+            // 2. Konten Berubah Berdasarkan State (Loading/Success/Error)
+            when (homeUiState) {
+                is HomeUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Primary)
+                    }
+                }
+                is HomeUiState.Success -> {
+                    // Tampilkan Grid jika Sukses
+                    LaundryGrid(
+                        laundryList = homeUiState.laundryList,
+                        onItemClick = onItemClick
                     )
+                }
+                is HomeUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Gagal memuat data", color = Color.Red)
+                    }
                 }
             }
         }
     }
 }
 
+// ================== GRID SECTION ==================
+@Composable
+fun LaundryGrid(
+    laundryList: List<Laundry>,
+    onItemClick: (String) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        items(laundryList) { item ->
+            LaundryGridItem(
+                item = item,
+                onClick = { onItemClick(item.id) }
+            )
+        }
+    }
+}
 
 // ================== HEADER ==================
 @Composable
@@ -110,7 +137,7 @@ fun HomeHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = R.drawable.icon),
+            painter = painterResource(id = R.drawable.icon), // Pastikan icon ada
             contentDescription = "Logo",
             modifier = Modifier.size(40.dp)
         )
@@ -126,7 +153,7 @@ fun HomeHeader(
         )
 
         Icon(
-            painter = painterResource(id = R.drawable.outline_favorite_24),
+            painter = painterResource(id = R.drawable.outline_favorite_24), // Pastikan icon ada
             contentDescription = "Favorite",
             tint = OnBackground,
             modifier = Modifier
@@ -184,11 +211,8 @@ fun SearchBar(
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
-
-            // 🔹 GARIS TEPI
             focusedIndicatorColor = Color(0xFFCFD8DC),
             unfocusedIndicatorColor = Color(0xFFCFD8DC),
-
             focusedTextColor = Color.Black,
             unfocusedTextColor = Color.Black,
             cursorColor = Primary
@@ -210,6 +234,7 @@ fun LaundryGridItem(
             .clickable { onClick() }
     ) {
         Column {
+            // Gambar Laundry
             Image(
                 painter = painterResource(id = item.imageRes),
                 contentDescription = item.name,
@@ -219,6 +244,7 @@ fun LaundryGridItem(
                     .height(120.dp)
             )
 
+            // Info Laundry
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -250,19 +276,22 @@ fun LaundryGridItem(
     }
 }
 
-
-// ================== DUMMY DATA ==================
-fun sampleData() = listOf(
-    Laundry("1", "Laundry Wertwer", "Jalan Senopati No. 3", "135 m", R.drawable.icon),
-    Laundry("2", "Laundry Bersih", "Jalan Mawar No. 10", "200 m", R.drawable.icon),
-    Laundry("3", "Cuci Kilat", "Jalan Melati No. 5", "500 m", R.drawable.icon),
-    Laundry("4", "Mama Laundry", "Jalan Anggrek No. 12", "1.2 km", R.drawable.icon)
-)
-
-@Preview(showBackground = true)
-@Composable
-fun CustomerHomePreview() {
-    CariLaundryTheme {
-        CustomerHomeScreen()
-    }
-}
+// ================== PREVIEW ==================
+// Untuk Preview, kita butuh data palsu manual, karena ViewModel sulit di-preview
+//@Preview(showBackground = true)
+//@Composable
+//fun CustomerHomePreview() {
+//    CariLaundryTheme {
+//        // Kita buat list dummy manual HANYA untuk preview UI di Android Studio
+//        val dummyList = listOf(
+//            Laundry("1", "Laundry Preview", "Jl. Test", "100m", R.drawable.icon),
+//            Laundry("2", "Laundry Preview 2", "Jl. Coba", "200m", R.drawable.icon)
+//        )
+//        // Kita panggil Grid-nya saja supaya tidak error ViewModel
+//        Scaffold { padding ->
+//            Column(modifier = Modifier.padding(padding)) {
+//                LaundryGrid(laundryList = dummyList, onItemClick = {})
+//            }
+//        }
+//    }
+//}
