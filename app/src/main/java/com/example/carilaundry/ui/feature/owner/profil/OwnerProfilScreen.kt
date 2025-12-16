@@ -1,4 +1,4 @@
-package com.example.carilaundry.ui.feature.customer.profil
+package com.example.carilaundry.ui.feature.owner.profil
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,14 +19,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.carilaundry.R
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-import com.example.carilaundry.ui.theme.OnBackground
 
 // ================= SCREEN =================
 @Composable
-fun ProfilScreen(
+fun OwnerProfilScreen(
     onBack: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
+    // Menggunakan palet warna yang sama dengan Customer
     val BackgroundColor = Color(0xFFE0F7FA)
     val InfoTextColor = Color(0xFF5C6BC0)
     val NameColor = Color(0xFF1A237E)
@@ -39,10 +39,10 @@ fun ProfilScreen(
     ) {
 
         // HEADER
-        ProfileHeader(onBack)
+        OwnerProfileHeader(onBack)
 
         Text(
-            text = "Profil",
+            text = "Profil Owner",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black,
@@ -64,6 +64,7 @@ fun ProfilScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
+                    // Avatar Inisial
                     Box(
                         modifier = Modifier
                             .size(60.dp)
@@ -72,25 +73,33 @@ fun ProfilScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "AS",
+                            text = "PB", // Inisial (Pak Budi)
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Text(
-                        text = "Anel Saja",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NameColor,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
+                    // Nama & Role
+                    Column(modifier = Modifier.padding(start = 16.dp)) {
+                        Text(
+                            text = "Pak Budi",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = NameColor
+                        )
+                        Text(
+                            text = "Pemilik Laundry",
+                            fontSize = 12.sp,
+                            color = InfoTextColor
+                        )
+                    }
                 }
 
+                // Detail Informasi Owner
                 ProfileDetailRow(
                     iconRes = R.drawable.baseline_email_24,
-                    text = "anel.rifki@email.com",
+                    text = "budi.laundry@email.com",
                     color = InfoTextColor
                 )
 
@@ -98,7 +107,7 @@ fun ProfilScreen(
 
                 ProfileDetailRow(
                     iconRes = R.drawable.baseline_local_phone_24,
-                    text = "+62 812-3456-7890",
+                    text = "+62 812-9876-5432",
                     color = InfoTextColor
                 )
 
@@ -106,7 +115,7 @@ fun ProfilScreen(
 
                 ProfileDetailRow(
                     iconRes = R.drawable.outline_location_on_24,
-                    text = "Jl. Sudirman No. 123, Jakarta",
+                    text = "Jalan Senopati No. 3, Kampungin",
                     color = InfoTextColor
                 )
             }
@@ -142,10 +151,10 @@ fun ProfilScreen(
 }
 
 
-// ================= KOMPONEN =================
+// ================= KOMPONEN HELPER =================
 
 @Composable
-fun ProfileHeader(onBack: () -> Unit) {
+fun OwnerProfileHeader(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +164,7 @@ fun ProfileHeader(onBack: () -> Unit) {
         Icon(
             painter = painterResource(id = R.drawable.baseline_arrow_back_24),
             contentDescription = "Back",
-            tint = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            tint = Color(0xFF0D1B2A),
             modifier = Modifier
                 .size(24.dp)
                 .clickable { onBack() }
@@ -170,10 +179,10 @@ fun ProfileHeader(onBack: () -> Unit) {
         )
 
         Text(
-            text = "CariLaundry",
+            text = "CariLaundry Owner",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            color = Color(0xFF0D1B2A),
             modifier = Modifier.padding(start = 12.dp)
         )
     }
@@ -196,38 +205,10 @@ fun ProfileDetailRow(iconRes: Int, text: String, color: Color) {
     }
 }
 
-@Composable
-fun ProfileBottomNav() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp)
-            .background(Color.White),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(id = R.drawable.baseline_home_24),
-            contentDescription = "Home",
-            tint = Color.Black
-        )
-        Icon(
-            painter = painterResource(id = R.drawable.ic_swap),
-            contentDescription = "Order",
-            tint = Color.Black
-        )
-        Icon(
-            painter = painterResource(id = R.drawable.outline_account_circle_24),
-            contentDescription = "Profile",
-            tint = Color.Black
-        )
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
-fun ProfilPreview() {
+fun OwnerProfilPreview() {
     CariLaundryTheme {
-        ProfilScreen()
+        OwnerProfilScreen()
     }
 }

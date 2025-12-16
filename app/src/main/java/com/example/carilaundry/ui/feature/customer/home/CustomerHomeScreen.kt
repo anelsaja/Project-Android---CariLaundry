@@ -1,153 +1,262 @@
 package com.example.carilaundry.ui.feature.customer.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.Surface
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.carilaundry.R
+import com.example.carilaundry.ui.theme.Background
 import com.example.carilaundry.ui.theme.CariLaundryTheme
+import com.example.carilaundry.ui.theme.OnBackground
+import com.example.carilaundry.ui.theme.OnPrimary
 import com.example.carilaundry.ui.theme.Primary
 
+// ================== DATA MODEL ==================
 data class Laundry(
     val id: String,
     val name: String,
     val address: String,
-    val phone: String,
-    val distance: String
+    val distance: String,
+    val imageRes: Int
 )
 
+// ================== SCREEN ==================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerHomeScreen(
-    modifier: Modifier = Modifier,
     items: List<Laundry> = sampleData(),
     onItemClick: (String) -> Unit = {},
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    val query = remember { mutableStateOf("") }
+    var searchText by remember { mutableStateOf("") }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)) {
+    Scaffold(
+        containerColor = Background
+    ) { innerPadding ->
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "CariLaundry", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                Row {
-                    IconButton(onClick = onOpenFavorites) {
-                        Icon(imageVector = Icons.Default.Favorite, contentDescription = "Favorites")
-                    }
-                    IconButton(onClick = onOpenNotifications) {
-                        Icon(imageVector = Icons.Default.Notifications, contentDescription = "Notifications")
-                    }
-                    IconButton(onClick = onOpenProfile) {
-                        Icon(imageVector = Icons.Default.Person, contentDescription = "Profile")
-                    }
-                }
-            }
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = query.value,
-                onValueChange = { query.value = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Cari Tempat Laundry...") },
-                leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) }
+            HomeHeader(
+                onFavoriteClick = onOpenFavorites,
+                onNotifClick = onOpenNotifications,
+                onProfileClick = onOpenProfile
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            SearchBar(
+                value = searchText,
+                onValueChange = { searchText = it }
+            )
 
-            Text(text = "Laundry terdekat", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Laundry terdekat",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = OnBackground,
+                modifier = Modifier.padding(16.dp)
+            )
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(items) { item ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .clickable { onItemClick(item.id) },
-                        shape = MaterialTheme.shapes.medium,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Box(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp)
-                                .background(Color.Gray))
-
-                            Box(modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .fillMaxWidth()
-                                .height(80.dp)
-                                .background(Primary)
-                                .padding(12.dp)) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(text = item.name, style = MaterialTheme.typography.titleMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Column {
-                                            Text(text = item.address, style = MaterialTheme.typography.bodySmall, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                            Text(text = item.phone, style = MaterialTheme.typography.bodySmall, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        }
-                                        Text(text = item.distance, style = MaterialTheme.typography.bodySmall, color = Color.White)
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    LaundryGridItem(
+                        item = item,
+                        onClick = { onItemClick(item.id) }
+                    )
                 }
             }
         }
     }
 }
 
-fun sampleData(): List<Laundry> = listOf(
-    Laundry("1", "Laundry Wertwer", "Jalan Sempiont No. 3, Kampungin", "+62 813-2707-4781", "135 m"),
-    Laundry("2", "Laundry Biru", "Jalan Mawar 10", "+62 812-0000-0000", "200 m"),
-    Laundry("3", "Laundry Cepat", "Jalan Melati 5", "+62 811-1111-111", "85 m"),
-    Laundry("4", "Laundry Bersih", "Jalan Kenanga 7", "+62 810-2222-222", "150 m")
+
+// ================== HEADER ==================
+@Composable
+fun HomeHeader(
+    onFavoriteClick: () -> Unit,
+    onNotifClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.icon),
+            contentDescription = "Logo",
+            modifier = Modifier.size(40.dp)
+        )
+
+        Text(
+            text = "CariLaundry",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = OnBackground,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 12.dp)
+        )
+
+        Icon(
+            painter = painterResource(id = R.drawable.outline_favorite_24),
+            contentDescription = "Favorite",
+            tint = OnBackground,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onFavoriteClick() }
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Icon(
+            painter = painterResource(id = R.drawable.outline_notifications_24),
+            contentDescription = "Notification",
+            tint = OnBackground,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onNotifClick() }
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Icon(
+            painter = painterResource(id = R.drawable.outline_account_circle_24),
+            contentDescription = "Profile",
+            tint = OnBackground,
+            modifier = Modifier
+                .size(24.dp)
+                .clickable { onProfileClick() }
+        )
+    }
+}
+
+
+// ================== SEARCH BAR ==================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchBar(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                "Cari Tempat Laundry...",
+                color = Color.Black.copy(alpha = 0.5f)
+            )
+        },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(50.dp),
+        shape = RoundedCornerShape(25.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+
+            // 🔹 GARIS TEPI
+            focusedIndicatorColor = Color(0xFFCFD8DC),
+            unfocusedIndicatorColor = Color(0xFFCFD8DC),
+
+            focusedTextColor = Color.Black,
+            unfocusedTextColor = Color.Black,
+            cursorColor = Primary
+        )
+    )
+}
+
+// ================== GRID ITEM ==================
+@Composable
+fun LaundryGridItem(
+    item: Laundry,
+    onClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Column {
+            Image(
+                painter = painterResource(id = item.imageRes),
+                contentDescription = item.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Primary)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = item.name,
+                    color = OnPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = item.address,
+                    color = OnPrimary.copy(alpha = 0.8f),
+                    fontSize = 10.sp,
+                    maxLines = 1
+                )
+                Text(
+                    text = item.distance,
+                    color = OnPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+
+// ================== DUMMY DATA ==================
+fun sampleData() = listOf(
+    Laundry("1", "Laundry Wertwer", "Jalan Senopati No. 3", "135 m", R.drawable.icon),
+    Laundry("2", "Laundry Bersih", "Jalan Mawar No. 10", "200 m", R.drawable.icon),
+    Laundry("3", "Cuci Kilat", "Jalan Melati No. 5", "500 m", R.drawable.icon),
+    Laundry("4", "Mama Laundry", "Jalan Anggrek No. 12", "1.2 km", R.drawable.icon)
 )
 
 @Preview(showBackground = true)

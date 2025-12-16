@@ -1,318 +1,375 @@
 package com.example.carilaundry.ui.feature.customer.detail_pesanan
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.carilaundry.R
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ShoppingCart
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ================= SCREEN =================
 @Composable
 fun DetailPesananCustomerScreen(
-    modifier: Modifier = Modifier,
     laundryId: String? = null,
-    laundryName: String = "Laundry Wertwer",
-    address: String = "Jalan Senopati No. 3, Kampungin",
-    phone: String = "+62 812-2707-4781",
     onBack: () -> Unit = {},
-    onPlaceOrder: (total: Int) -> Unit = {}
+    onPlaceOrder: (Int) -> Unit = {},
+    onSubmitOrder: () -> Unit = {}
 ) {
-    var layanan by remember { mutableStateOf("Cuci dan Lipat") }
-    var kategori by remember { mutableStateOf("Baju dan Celana") }
-    var lamaCuci by remember { mutableStateOf("3 Hari") }
-    var berat by remember { mutableStateOf("5") } // numeric only
-    var catatan by remember { mutableStateOf("") }
+    // State untuk Form
+    // Opsi layanan sesuai deskripsi laundry
+    val serviceOptions = listOf("Cuci & Lipat", "Cuci Kering", "Setrika Saja")
+    var selectedService by remember { mutableStateOf(serviceOptions[0]) }
 
-    var pengambilanMethod by remember { mutableStateOf("Antar Sendiri") }
-    var waktu by remember { mutableStateOf("") }
-    var alamatPengantaran by remember { mutableStateOf("") }
+    var itemCategory by remember { mutableStateOf("") } // Input Text
+    var weight by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var payment by remember { mutableStateOf("Tunai") }
 
-    var pembayaranMethod by remember { mutableStateOf("Bayar Tunai") }
-
-    val hargaPerKg = 8000
-    val subtotal = (berat.toIntOrNull() ?: 0) * hargaPerKg
-    val biayaAntar = if (pengambilanMethod == "Antar") 10000 else 0
-    val total = subtotal + biayaAntar
-
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                TopAppBar(
-                    title = { Text(text = "Order", fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                )
-            }
-
-            item {
-                Card(
-                    shape = RoundedCornerShape(10.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier
-                        .padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-
-                        Box(modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White), contentAlignment = Alignment.Center) {
-                            Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "logo", tint = MaterialTheme.colorScheme.primary)
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = laundryName + (laundryId?.let { " (id:$it)" } ?: ""), fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 16.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = address, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f))
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(text = phone, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.95f))
-                        }
-
-                        OutlinedButton(onClick = { /* open */ }, modifier = Modifier
-                            .height(36.dp), colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)) {
-                            Text(text = "Detail", color = Color.White)
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text(text = "Layanan", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            }
-
-            fun dropdownField(value: String, label: String, onClick: () -> Unit) = @Composable {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = {},
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onClick() },
-                    readOnly = true,
-                    label = { Text(label) },
-                    trailingIcon = {
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                    }
-                )
-            }
-
-            item {
-                dropdownField(layanan, "Jenis Layanan") { /* show options */ }()
-            }
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            item {
-                dropdownField(kategori, "Kategori Item") { /* show options */ }()
-            }
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-            item {
-                dropdownField(lamaCuci, "Lama Cuci") { /* show options */ }()
-            }
-
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = berat,
-                        onValueChange = { berat = it.filter { ch -> ch.isDigit() } },
-                        label = { Text("Berat (kg)") },
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(onClick = { /* scann */ }, modifier = Modifier
-                        .height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), shape = RoundedCornerShape(8.dp)) {
-//                        icon() ===> nnti ksi icon scan
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Scan Cucian", color = Color.White)
-
-                        //keknya hsrus sesuaikan metode hitung harga
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            item {
-                OutlinedTextField(value = catatan, onValueChange = { catatan = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Catatan") })
-            }
-
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            item {
-                Text(text = "Pengambilan dan Pengantaran", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            }
-
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = pengambilanMethod == "Antar", onClick = { pengambilanMethod = "Antar" })
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Antar", modifier = Modifier.clickable { pengambilanMethod = "Antar" })
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        RadioButton(selected = pengambilanMethod == "Jemput", onClick = { pengambilanMethod = "Jemput" })
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Jemput", modifier = Modifier.clickable { pengambilanMethod = "Jemput" })
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        RadioButton(selected = pengambilanMethod == "Antar Sendiri", onClick = { pengambilanMethod = "Antar Sendiri" })
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Antar Sendiri", modifier = Modifier.clickable { pengambilanMethod = "Antar Sendiri" })
-                    }
-
-                    OutlinedTextField(value = waktu, onValueChange = { waktu = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Waktu") })
-                    OutlinedTextField(value = alamatPengantaran, onValueChange = { alamatPengantaran = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Alamat") })
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            item {
-                Text(text = "Metode Pembayaran", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            }
-
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val methods = listOf("Bayar Tunai", "Transfer Bank", "E-Wallet")
-                    methods.forEach { m ->
-                        val selected = pembayaranMethod == m
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { pembayaranMethod = m },
-                            shape = RoundedCornerShape(8.dp),
-                            border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.LightGray), contentAlignment = Alignment.Center) {
-                                    if (selected) Icon(imageVector = Icons.Default.Check, contentDescription = "selected", tint = Color.White, modifier = Modifier.size(12.dp))
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(text = m, fontWeight = FontWeight.SemiBold)
-                                    Text(text = when (m) {
-                                        "Bayar Tunai" -> "Bayar saat kurir tiba"
-                                        "Transfer Bank" -> "Transfer via bank"
-                                        else -> "Pembayaran digital"
-                                    }, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            item {
-                Text(text = "Harga", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            }
-
-            item {
-                Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Subtotal (${berat} kg)")
-                            Text(text = String.format(Locale.getDefault(), "Rp %,d", subtotal))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Biaya Antar")
-                            Text(text = if (biayaAntar == 0) "Gratis" else String.format(Locale.getDefault(), "Rp %,d", biayaAntar))
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Total", fontWeight = FontWeight.Bold)
-                            Text(text = String.format(Locale.getDefault(), "Rp %,d", total), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(12.dp)) }
-
-            item {
-                Button(onClick = { onPlaceOrder(total) }, modifier = Modifier
+    Scaffold(
+        containerColor = Color(0xFFE0F7FA),
+        bottomBar = {
+            Button(
+                onClick = onSubmitOrder,
+                modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), shape = RoundedCornerShape(12.dp)) {
-                    Text(text = "Pesan", color = Color.White, fontSize = 16.sp)
+                    .padding(16.dp)
+                    .height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Pesan", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    ) { padding ->
+
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+
+            OrderHeader(onBack)
+
+            LaundryInfoCard()
+
+            Spacer(modifier = Modifier.height(16.dp))
+            SectionTitle("Layanan")
+
+            // 1. DROPDOWN JENIS LAYANAN
+            InputLabel("Jenis Layanan")
+            CustomDropdownInput(
+                options = serviceOptions,
+                selectedOption = selectedService,
+                onOptionSelected = { selectedService = it }
+            )
+
+            // 2. TEXT INPUT KATEGORI ITEM
+            InputLabel("Kategori Item")
+            CustomTextField(
+                value = itemCategory,
+                onValueChange = { itemCategory = it },
+                placeholder = "Contoh: Baju, Celana, Selimut"
+            )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    InputLabel("Berat")
+                    CustomTextField(weight, { weight = it }, "5 kg")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { /* scan */ },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = 20.dp)
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
+                    shape = RoundedCornerShape(8.dp) // Samakan shape tombol scan
+                ) {
+                    Text("Scan")
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(24.dp)) }
+            Spacer(modifier = Modifier.height(12.dp))
+            InputLabel("Catatan")
+            CustomTextField(notes, { notes = it }, "Catatan tambahan (Opsional)", false, 80.dp)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionTitle("Pengambilan & Pengantaran")
+
+            InputLabel("Tanggal")
+            CustomTextField(date, { date = it }, "DD/MM/YYYY")
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            InputLabel("Alamat")
+            CustomTextField(address, { address = it }, "Alamat lengkap pengiriman", false, 80.dp)
+
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionTitle("Metode Pembayaran")
+
+            PaymentOption("Bayar Tunai", payment == "Tunai") { payment = "Tunai" }
+            PaymentOption("Transfer Bank", payment == "Transfer") { payment = "Transfer" }
+            PaymentOption("E-Wallet", payment == "E-Wallet") { payment = "E-Wallet" }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            SectionTitle("Harga")
+            PricingSummaryCard()
+
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
+// ================= KOMPONEN =================
+
+@Composable
+fun OrderHeader(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.baseline_arrow_back_24),
+            contentDescription = "Back",
+            tint = Color(0xFF0D1B2A),
+            modifier = Modifier
+                .size(24.dp)
+                .align(Alignment.CenterStart)
+                .clickable { onBack() }
+        )
+        Text(
+            "Order",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0D1B2A),
+            modifier = Modifier.align(Alignment.Center)
+        )
+    }
+}
+
+
+@Composable
+fun LaundryInfoCard() {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+    ) {
+        Row {
+            Image(
+                painter = painterResource(id = R.drawable.icon),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(90.dp)
+                    .fillMaxHeight()
+            )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(Color(0xFF3F7EC2))
+                    .padding(12.dp)
+            ) {
+                Text("Laundry Wertwer", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Jalan Senopati No. 3", color = Color(0xFFE0E0E0), fontSize = 12.sp)
+                Text("+62 812-2707-4781", color = Color(0xFFE0E0E0), fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    singleLine: Boolean = true,
+    height: Dp = 50.dp
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                text = placeholder,
+                fontSize = 14.sp,
+                color = Color(0xFF616161) // Warna placeholder lebih gelap (Abu Tua) agar kontras
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(Color.White, RoundedCornerShape(8.dp)), // Background putih
+        singleLine = singleLine,
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color(0xFF3F7EC2), // Biru saat aktif
+            unfocusedBorderColor = Color.LightGray,
+            focusedTextColor = Color.Black,
+            unfocusedTextColor = Color.Black,
+            cursorColor = Color(0xFF3F7EC2)
+        )
+    )
+}
+
+@Composable
+fun CustomDropdownInput(
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+            .clickable { expanded = true }
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = selectedOption,
+                fontSize = 14.sp,
+                color = Color.Black
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Dropdown",
+                tint = Color.Black
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Color.White)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(text = option, color = Color.Black) },
+                    onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun PaymentOption(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .background(Color.White, RoundedCornerShape(8.dp))
+            .border(
+                width = if (selected) 2.dp else 1.dp,
+                color = if (selected) Color(0xFF3F7EC2) else Color.LightGray,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = Color(0xFF3F7EC2),
+                unselectedColor = Color.Gray
+            )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            label,
+            color = Color(0xFF0D1B2A),
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
+
+@Composable
+fun PricingSummaryCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            PriceRow("Subtotal (5 kg)", "Rp 40.000")
+            PriceRow("Biaya Antar", "Gratis")
+            Divider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
+            PriceRow("Total", "Rp 40.000", true)
+        }
+    }
+}
+
+@Composable
+fun PriceRow(label: String, value: String, bold: Boolean = false) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        Text(label, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, color = Color.Black)
+        Text(value, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal, color = Color.Black)
+    }
+}
+
+@Composable
+fun SectionTitle(text: String) {
+    Text(
+        text,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF0D1B2A)
+    )
+}
+
+@Composable
+fun InputLabel(text: String) {
+    Text(
+        text,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        color = Color(0xFF4A4A4A),
+        modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
-fun DetailPesananCustomerPreview() {
+fun OrderFormPreview() {
     CariLaundryTheme {
         DetailPesananCustomerScreen(laundryId = "1")
     }

@@ -1,132 +1,157 @@
 package com.example.carilaundry.ui.feature.customer.register
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.carilaundry.ui.theme.CariLaundryTheme
+import androidx.compose.ui.unit.sp
+import com.example.carilaundry.R
+import com.example.carilaundry.ui.theme.*
 
 @Composable
 fun CustomerRegisterScreen(
-    modifier: Modifier = Modifier,
-    onRegister: (name: String, email: String, phone: String, password: String) -> Unit = { _, _, _, _ -> },
-    onSignInClicked: () -> Unit = {}
+    onRegister: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
+    onLoginClicked: () -> Unit = {}
 ) {
-    val scrollState = rememberScrollState()
-    val name = remember { mutableStateOf("") }
-    val email = remember { mutableStateOf("") }
-    val phone = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
-    val confirmPassword = remember { mutableStateOf("") }
-    val errorMessage = remember { mutableStateOf<String?>(null) }
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+
+        // LOGO
+        Image(
+            painter = painterResource(id = R.drawable.icon),
+            contentDescription = "Logo",
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start
+                .size(140.dp)
+                .padding(bottom = 32.dp)
+        )
+
+        // JUDUL
+        Text(
+            text = "Daftar Customer",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = OnBackground
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Buat akun baru untuk mulai menggunakan layanan",
+            fontSize = 14.sp,
+            color = OnBackground.copy(alpha = 0.7f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // NAMA
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Nama", color = OnSurface) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
+                focusedBorderColor = Primary,
+                unfocusedBorderColor = Outline,
+                focusedLabelColor = Primary,
+                unfocusedLabelColor = OnSurface,
+                cursorColor = Primary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // EMAIL
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email", color = OnSurface) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
+                focusedBorderColor = Primary,
+                unfocusedBorderColor = Outline,
+                focusedLabelColor = Primary,
+                unfocusedLabelColor = OnSurface,
+                cursorColor = Primary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // PASSWORD
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password", color = OnSurface) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = OnSurface,
+                unfocusedTextColor = OnSurface,
+                focusedBorderColor = Primary,
+                unfocusedBorderColor = Outline,
+                focusedLabelColor = Primary,
+                unfocusedLabelColor = OnSurface,
+                cursorColor = Primary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // BUTTON DAFTAR
+        Button(
+            onClick = { onRegister(name, email, password) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Primary,
+                contentColor = OnPrimary
+            )
         ) {
-            Text(text = "Daftar sebagai Customer", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Buat akun customer untuk menemukan layanan laundry terbaik dan mengelola pesanan Anda.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                text = "Daftar",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-            OutlinedTextField(
-                value = name.value,
-                onValueChange = { name.value = it },
-                label = { Text("Nama Lengkap") },
-                modifier = Modifier.fillMaxWidth()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // SUDAH PUNYA AKUN?
+        TextButton(onClick = onLoginClicked) {
+            Text(
+                text = "Sudah punya akun? Masuk",
+                color = Primary,
+                fontWeight = FontWeight.Medium
             )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = email.value,
-                onValueChange = { email.value = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = phone.value,
-                onValueChange = { phone.value = it },
-                label = { Text("No. Telepon") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = password.value,
-                onValueChange = { password.value = it },
-                label = { Text("Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedTextField(
-                value = confirmPassword.value,
-                onValueChange = { confirmPassword.value = it },
-                label = { Text("Konfirmasi Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            errorMessage.value?.let { msg ->
-                Text(text = msg, color = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Button(
-                onClick = {
-                    errorMessage.value = null
-                    when {
-                        name.value.isBlank() -> errorMessage.value = "Nama lengkap wajib diisi"
-                        email.value.isBlank() -> errorMessage.value = "Email wajib diisi"
-                        password.value.length < 6 -> errorMessage.value = "Password minimal 6 karakter"
-                        password.value != confirmPassword.value -> errorMessage.value = "Password tidak cocok"
-                        else -> {
-                            onRegister(name.value, email.value, phone.value, password.value)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Daftar sebagai Customer")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextButton(onClick = onSignInClicked, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Sudah punya akun? Masuk")
-            }
         }
     }
 }
