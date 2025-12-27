@@ -1,5 +1,10 @@
 package com.example.carilaundry.ui.feature.customer.home
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,12 +17,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
 import com.example.carilaundry.domain.model.Laundry
@@ -27,21 +36,46 @@ import com.example.carilaundry.ui.theme.OnBackground
 import com.example.carilaundry.ui.theme.OnPrimary
 import com.example.carilaundry.ui.theme.Primary
 
+// ================== SCREEN UTAMA ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomerHomeScreen(
     modifier: Modifier = Modifier,
-    // Inject ViewModel
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onItemClick: (String) -> Unit = {},
     onOpenFavorites: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    // 1. Ambil state terbaru sebagai satu objek Data Class
-    val uiState by viewModel.uiState.collectAsState()
-
+    val context = LocalContext.current
+    
+    // Perbaikan: Gunakan collectAsStateWithLifecycle untuk mengambil state
+    val homeUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
     var searchText by remember { mutableStateOf("") }
+
+    // --- IZIN LOKASI ---
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Toast.makeText(context, "Izin lokasi diberikan", Toast.LENGTH_SHORT).show()
+            // Di sini nanti bisa panggil fungsi untuk ambil lokasi terkini
+        } else {
+            Toast.makeText(context, "Izin lokasi ditolak, fitur peta mungkin terbatas", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Cek izin saat pertama kali layar dibuka
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
 
     Scaffold(
         containerColor = Background,
@@ -54,7 +88,7 @@ fun CustomerHomeScreen(
                 .fillMaxSize()
         ) {
 
-            // Bagian Header & Search selalu tampil
+            // 1. Header & Search Bar
             HomeHeader(
                 onFavoriteClick = onOpenFavorites,
                 onNotifClick = onOpenNotifications,
@@ -74,37 +108,22 @@ fun CustomerHomeScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            // 2. Logika Tampilan (Menggunakan IF karena UI State berupa Data Class)
-            Box(modifier = Modifier.fillMaxSize()) {
-
-                // A. Jika List Ada Isinya -> Tampilkan Grid
-                if (uiState.laundryList.isNotEmpty()) {
-                    LaundryGrid(
-                        laundryList = uiState.laundryList,
-                        onItemClick = onItemClick
-                    )
-                }
-
-                // B. Jika Loading -> Tampilkan Loading Spinner (bisa di atas list)
-                if (uiState.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+            // 2. Konten List Laundry
+            when (val state = homeUiState) {
+                is HomeUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Primary)
                     }
                 }
-
-                // C. Jika Error & Data Kosong -> Tampilkan Pesan Error
-                if (uiState.errorMessage != null && uiState.laundryList.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = uiState.errorMessage ?: "Terjadi kesalahan",
-                            color = Color.Red
-                        )
+                is HomeUiState.Success -> {
+                    LaundryGrid(
+                        laundryList = state.laundryList,
+                        onItemClick = onItemClick
+                    )
+                }
+                is HomeUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Gagal memuat data: ${state.message}", color = Color.Red)
                     }
                 }
             }
@@ -112,8 +131,7 @@ fun CustomerHomeScreen(
     }
 }
 
-// ================== KOMPONEN PENDUKUNG (TETAP SAMA) ==================
-
+// ================== GRID SECTION ==================
 @Composable
 fun LaundryGrid(
     laundryList: List<Laundry>,
@@ -135,6 +153,7 @@ fun LaundryGrid(
     }
 }
 
+// ================== HEADER ==================
 @Composable
 fun HomeHeader(
     onFavoriteClick: () -> Unit,
@@ -196,6 +215,7 @@ fun HomeHeader(
     }
 }
 
+// ================== SEARCH BAR ==================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
@@ -229,6 +249,7 @@ fun SearchBar(
     )
 }
 
+// ================== GRID ITEM ==================
 @Composable
 fun LaundryGridItem(
     item: Laundry,
@@ -281,23 +302,3 @@ fun LaundryGridItem(
         }
     }
 }
-
-// ================== PREVIEW ==================
-// Untuk Preview, kita butuh data palsu manual, karena ViewModel sulit di-preview
-//@Preview(showBackground = true)
-//@Composable
-//fun CustomerHomePreview() {
-//    CariLaundryTheme {
-//        // Kita buat list dummy manual HANYA untuk preview UI di Android Studio
-//        val dummyList = listOf(
-//            Laundry("1", "Laundry Preview", "Jl. Test", "100m", R.drawable.icon),
-//            Laundry("2", "Laundry Preview 2", "Jl. Coba", "200m", R.drawable.icon)
-//        )
-//        // Kita panggil Grid-nya saja supaya tidak error ViewModel
-//        Scaffold { padding ->
-//            Column(modifier = Modifier.padding(padding)) {
-//                LaundryGrid(laundryList = dummyList, onItemClick = {})
-//            }
-//        }
-//    }
-//}

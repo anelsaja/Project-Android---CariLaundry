@@ -1,5 +1,6 @@
 package com.example.carilaundry.ui.navigation
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,12 +9,19 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+
+// --- DOMAIN MODELS IMPORT ---
+import com.example.carilaundry.domain.model.OwnerOrder
+
+// --- FIREBASE IMPORTS ---
+import com.google.firebase.auth.FirebaseAuth
 
 // --- IMPORT COMPONENT ---
 import com.example.carilaundry.ui.components.BottomNavBar
@@ -47,19 +55,25 @@ fun NavGraph() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
 
     // DAFTAR ROUTE YANG MENAMPILKAN BOTTOM NAV BAR
     val bottomRoutes = setOf(
         "customer/home",
         "customer/orders",
-        "customer/profile"
+        "customer/profile",
+        "owner/home",
+        "owner/profile"
     )
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
             if (currentRoute in bottomRoutes) {
-                BottomNavBar(navController = navController)
+                if (currentRoute?.startsWith("customer") == true) {
+                     BottomNavBar(navController = navController)
+                }
             }
         }
     ) { innerPadding: PaddingValues ->
@@ -73,26 +87,26 @@ fun NavGraph() {
             composable("customer/login") {
                 CustomerLoginScreen(
                     onLoginSuccess = {
-                        // Jika login sukses (dari ViewModel), pindah ke Home
                         navController.navigate("customer/home") {
                             popUpTo("customer/login") { inclusive = true }
                         }
+                        Toast.makeText(context, "Login Berhasil", Toast.LENGTH_SHORT).show()
                     },
-                    onRegisterClicked = { navController.navigate("customer/register") },
-                    onSwitchToOwner = { navController.navigate("owner/login") }
+                    onNavigateToRegister = { navController.navigate("customer/register") },
+                    onNavigateToOwner = { navController.navigate("owner/login") }
                 )
             }
 
             composable("owner/login") {
                 OwnerLoginScreen(
                     onLoginSuccess = {
-                        // Pindah ke Home Owner
                         navController.navigate("owner/home") {
                             popUpTo("owner/login") { inclusive = true }
                         }
+                        Toast.makeText(context, "Login Owner Berhasil", Toast.LENGTH_SHORT).show()
                     },
-                    onRegisterClicked = { navController.navigate("owner/register") },
-                    onSwitchToCustomer = { navController.navigate("customer/login") }
+                    onNavigateToRegister = { navController.navigate("owner/register") },
+                    onNavigateToCustomer = { navController.navigate("customer/login") }
                 )
             }
 
@@ -107,24 +121,24 @@ fun NavGraph() {
             composable("customer/register") {
                 CustomerRegisterScreen(
                     onRegisterSuccess = {
-                        // Setelah daftar, bisa ke login atau langsung home
-                        navController.navigate("customer/login") {
-                            popUpTo("customer/register") { inclusive = true }
+                        navController.navigate("customer/home") {
+                            popUpTo("customer/login") { inclusive = true }
                         }
+                        Toast.makeText(context, "Register Berhasil", Toast.LENGTH_SHORT).show()
                     },
-                    onLoginClicked = { navController.popBackStack() }
+                    onNavigateToLogin = { navController.popBackStack() }
                 )
             }
 
             composable("owner/register") {
                 OwnerRegisterScreen(
                     onRegisterSuccess = {
-                        // Sukses daftar -> Pindah ke Home Owner
                         navController.navigate("owner/home") {
-                            popUpTo("owner/register") { inclusive = true }
+                            popUpTo("owner/login") { inclusive = true }
                         }
+                        Toast.makeText(context, "Register Owner Berhasil", Toast.LENGTH_SHORT).show()
                     },
-                    onSignInClicked = { navController.popBackStack() }
+                    onNavigateToLogin = { navController.popBackStack() }
                 )
             }
 
@@ -141,17 +155,14 @@ fun NavGraph() {
             composable("customer/notifications") {
                 NotifikasiCustomerScreen(
                     onBack = { navController.popBackStack() },
-                    onDetailClick = { id -> navController.navigate("customer/detail_pesanan/$id") }
+                    onDetailClick = { id -> navController.navigate("customer/orders") }
                 )
             }
 
             composable("customer/orders") {
                 CustomerOrdersScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenOrder = { orderId ->
-                        // Navigasi ke detail pesanan (Progress pengerjaan)
-                        navController.navigate("customer/detail_pesanan/$orderId")
-                    }
+                    onNavigateToDetail = { /* Nanti bisa handle detail order spesifik jika ada */ }
                 )
             }
 
@@ -159,57 +170,43 @@ fun NavGraph() {
                 ProfilScreen(
                     onBack = { navController.popBackStack() },
                     onLogout = {
+                        auth.signOut()
                         navController.navigate("customer/login") {
-                            popUpTo("customer/home") { inclusive = true }
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )
             }
 
-            // === UPDATE PENTING: DeskripsiScreen menggunakan parameter {laundryId} ===
             composable(
                 route = "customer/deskripsi/{laundryId}",
                 arguments = listOf(navArgument("laundryId") { type = NavType.StringType })
             ) { backStackEntry ->
-
-                // Kita ambil ID hanya untuk diteruskan ke tombol "Pesan Sekarang"
                 val currentId = backStackEntry.arguments?.getString("laundryId") ?: ""
-
                 DeskripsiScreen(
-                    // Parameter 'laundryId' dihapus karena sudah di-inject via ViewModel
                     onBack = { navController.popBackStack() },
-                    onOrderNow = {
-                        navController.navigate("customer/detail_pesanan/$currentId")
-                    },
+                    onOrderNow = { navController.navigate("customer/detail_pesanan/$currentId") },
                     onOpenMap = {}
                 )
             }
 
-            composable("customer/detail_pesanan/{id}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("id")
+            composable(
+                route = "customer/detail_pesanan/{laundryId}",
+                arguments = listOf(navArgument("laundryId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val laundryId = backStackEntry.arguments?.getString("laundryId")
 
                 DetailPesananCustomerScreen(
-                    // Hapus parameter laundryId jika merah (karena sudah di-handle ViewModel)
-                    // laundryId = id,
-
                     onBack = { navController.popBackStack() },
-
-                    // UBAH INI: dari onPlaceOrder menjadi onSubmitOrder
                     onSubmitOrder = {
-                        navController.navigate("customer/order_success/$id")
+                        navController.navigate("customer/order_success/$laundryId")
                     }
                 )
             }
 
-            composable("customer/order_success?name={name}&address={address}",
-                arguments = listOf(
-                    navArgument("name") { defaultValue = "Laundry" },
-                    navArgument("address") { defaultValue = "-" }
-                )
-            ) {
+            composable("customer/order_success/{id}") {
                 OrderSuccessScreen(
                     onOk = {
-                        // Kembali ke Home dan hapus semua backstack order
                         navController.navigate("customer/home") {
                             popUpTo("customer/home") { inclusive = true }
                         }
@@ -220,9 +217,7 @@ fun NavGraph() {
             composable("customer/favorites") {
                 CustomerFavoriteScreen(
                     onBack = { navController.popBackStack() },
-                    onItemClick = { id ->
-                        navController.navigate("customer/deskripsi/$id")
-                    }
+                    onItemClick = { id -> navController.navigate("customer/deskripsi/$id") }
                 )
             }
 
@@ -231,35 +226,34 @@ fun NavGraph() {
             composable("owner/home") {
                 OwnerOrdersScreen(
                     onDetailClick = { order ->
-                        // Navigasi ke Detail Pesanan Owner (akan kita buat nanti)
                         navController.navigate("owner/detail_pesanan/${order.id}")
                     },
-                    onOpenNotifications = {
-                        // Navigasi ke Notifikasi Owner (akan kita buat nanti)
-                        navController.navigate("owner/notifications")
-                    },
-                    onOpenProfile = {
-                        // Navigasi ke Profil Owner (akan kita buat nanti)
-                        navController.navigate("owner/profile")
-                    }
+                    onOpenNotifications = { navController.navigate("owner/notifications") },
+                    onOpenProfile = { navController.navigate("owner/profile") }
                 )
             }
 
             composable("owner/notifications") {
                 NotifikasiOwnerScreen(
                     onBack = { navController.popBackStack() },
-                    onDetailClick = { id ->
-                        navController.navigate("owner/detail_pesanan/$id")
-                    }
+                    onDetailClick = { id -> navController.navigate("owner/detail_pesanan/$id") }
                 )
             }
 
-            composable("owner/detail_pesanan/{id}") {
+            // UPDATE: Menambahkan definisi arguments agar ID terbaca dengan benar
+            composable(
+                route = "owner/detail_pesanan/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id")
+                
                 DetailPesananOwnerScreen(
                     onBack = { navController.popBackStack() },
-                    onProcessPickup = { /* Logika update status */ },
-                    onProcessProgress = { /* Logika update status */ },
-                    onComplete = { navController.popBackStack() }
+                    onProcessPickup = { orderId -> /* Logika update status */ },
+                    onProcessProgress = { orderId -> /* Logika update status */ },
+                    onComplete = { orderId -> 
+                        navController.popBackStack() 
+                    }
                 )
             }
 
@@ -267,8 +261,9 @@ fun NavGraph() {
                 OwnerProfilScreen(
                     onBack = { navController.popBackStack() },
                     onLogout = {
+                        auth.signOut()
                         navController.navigate("owner/login") {
-                            popUpTo("owner/home") { inclusive = true }
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 )

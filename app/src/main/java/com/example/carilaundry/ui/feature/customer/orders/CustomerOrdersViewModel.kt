@@ -12,8 +12,9 @@ import kotlinx.coroutines.launch
 
 class CustomerOrdersViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(OrdersUiState())
-    val uiState: StateFlow<OrdersUiState> = _uiState.asStateFlow()
+    // Gunakan nama UI State yang konsisten
+    private val _uiState = MutableStateFlow(CustomerOrdersUiState())
+    val uiState: StateFlow<CustomerOrdersUiState> = _uiState.asStateFlow()
 
     init {
         loadOrders()

@@ -1,56 +1,83 @@
 package com.example.carilaundry.ui.feature.customer.register
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class CustomerRegisterViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(RegisterUiState())
-    val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+    var registerUiState by mutableStateOf(RegisterUiState())
+        private set
 
-    fun onNameChange(newValue: String) {
-        _uiState.update { it.copy(name = newValue, errorMessage = null) }
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
+
+    fun onEvent(event: RegisterEvent) {
+        when (event) {
+            is RegisterEvent.NameChanged -> registerUiState = registerUiState.copy(name = event.name)
+            is RegisterEvent.EmailChanged -> registerUiState = registerUiState.copy(email = event.email)
+            is RegisterEvent.PhoneChanged -> registerUiState = registerUiState.copy(phone = event.phone)
+            is RegisterEvent.AddressChanged -> registerUiState = registerUiState.copy(address = event.address)
+            is RegisterEvent.PasswordChanged -> registerUiState = registerUiState.copy(password = event.password)
+            is RegisterEvent.ConfirmPasswordChanged -> registerUiState = registerUiState.copy(confirmPassword = event.confirmPassword)
+            is RegisterEvent.RegisterClicked -> performRegister()
+            is RegisterEvent.ErrorDismissed -> registerUiState = registerUiState.copy(errorMessage = null)
+        }
     }
 
-    fun onEmailChange(newValue: String) {
-        _uiState.update { it.copy(email = newValue, errorMessage = null) }
-    }
+    private fun performRegister() {
+        val s = registerUiState
 
-    fun onPasswordChange(newValue: String) {
-        _uiState.update { it.copy(password = newValue, errorMessage = null) }
-    }
-
-    fun register() {
-        val currentState = _uiState.value
-
-        // 1. Validasi Sederhana
-        if (currentState.name.isEmpty() || currentState.email.isEmpty() || currentState.password.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Semua kolom harus diisi") }
+        // Validasi
+        if (s.name.isBlank() || s.email.isBlank() || s.password.isBlank()) {
+            registerUiState = registerUiState.copy(errorMessage = "Nama, Email, dan Password wajib diisi")
+            return
+        }
+        if (s.password.length < 6) {
+            registerUiState = registerUiState.copy(errorMessage = "Password minimal 6 karakter")
+            return
+        }
+        if (s.password != s.confirmPassword) {
+            registerUiState = registerUiState.copy(errorMessage = "Konfirmasi password tidak cocok")
             return
         }
 
-        // 2. Proses Register
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        // Mulai Loading
+        registerUiState = registerUiState.copy(isLoading = true, errorMessage = null)
 
-            // Simulasi Delay Network
-            delay(2000)
+        auth.createUserWithEmailAndPassword(s.email, s.password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        val userMap = hashMapOf(
+                            "name" to s.name,
+                            "email" to s.email,
+                            "phone" to s.phone,
+                            "address" to s.address,
+                            "role" to "customer"
+                        )
 
-            // Sukses
-            _uiState.update {
-                it.copy(isLoading = false, isSuccess = true)
+                        db.collection("users").document(userId).set(userMap)
+                            .addOnSuccessListener {
+                                registerUiState = registerUiState.copy(isLoading = false, isSuccess = true)
+                            }
+                            .addOnFailureListener { e ->
+                                registerUiState = registerUiState.copy(isLoading = false, errorMessage = "Gagal simpan data: ${e.message}")
+                            }
+                    } else {
+                        registerUiState = registerUiState.copy(isLoading = false, errorMessage = "Gagal mendapatkan User ID")
+                    }
+                } else {
+                    registerUiState = registerUiState.copy(isLoading = false, errorMessage = task.exception?.message ?: "Registrasi Gagal")
+                }
             }
-        }
     }
 
-    // Reset form jika user kembali ke halaman ini nanti
     fun resetState() {
-        _uiState.update { RegisterUiState() }
+        registerUiState = RegisterUiState()
     }
 }

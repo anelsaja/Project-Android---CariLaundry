@@ -1,62 +1,99 @@
 package com.example.carilaundry.ui.feature.customer.login
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class CustomerLoginViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    var loginUiState by mutableStateOf(LoginUiState())
+        private set
 
-    // Fungsi untuk update input email saat user mengetik
-    fun onEmailChange(newEmail: String) {
-        _uiState.update { it.copy(email = newEmail, errorMessage = null) }
-    }
+    private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
 
-    // Fungsi untuk update input password saat user mengetik
-    fun onPasswordChange(newPassword: String) {
-        _uiState.update { it.copy(password = newPassword, errorMessage = null) }
-    }
-
-    // Fungsi Login
-    fun login() {
-        val currentEmail = _uiState.value.email
-        val currentPassword = _uiState.value.password
-
-        // Validasi Sederhana
-        if (currentEmail.isEmpty() || currentPassword.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Email dan Password tidak boleh kosong") }
-            return
-        }
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-
-            // Simulasi Network Call (2 detik)
-            delay(2000)
-
-            // Logika Dummy: Email harus mengandung "@" dan pass > 3 karakter
-            if (currentEmail.contains("@") && currentPassword.length > 3) {
-                _uiState.update { it.copy(isLoading = false, isLoginSuccess = true) }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Email atau Password salah (Coba: email@test.com / 1234)"
-                    )
-                }
+    fun onEvent(event: LoginEvent) {
+        when (event) {
+            is LoginEvent.EmailChanged -> {
+                loginUiState = loginUiState.copy(email = event.email)
+            }
+            is LoginEvent.PasswordChanged -> {
+                loginUiState = loginUiState.copy(password = event.password)
+            }
+            is LoginEvent.LoginClicked -> {
+                performLogin()
+            }
+            is LoginEvent.ErrorDismissed -> {
+                loginUiState = loginUiState.copy(errorMessage = null)
             }
         }
     }
 
-    // Reset state setelah navigasi sukses (agar kalau back, form bersih/tidak error)
+    private fun performLogin() {
+        val email = loginUiState.email
+        val password = loginUiState.password
+
+        if (email.isBlank() || password.isBlank()) {
+            loginUiState = loginUiState.copy(errorMessage = "Email dan Password harus diisi")
+            return
+        }
+
+        loginUiState = loginUiState.copy(isLoading = true, errorMessage = null)
+
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val uid = task.result.user?.uid
+                    if (uid != null) {
+                        checkRole(uid)
+                    } else {
+                        loginUiState = loginUiState.copy(isLoading = false, errorMessage = "User ID tidak ditemukan")
+                    }
+                } else {
+                    loginUiState = loginUiState.copy(
+                        isLoading = false,
+                        isSuccess = false,
+                        errorMessage = task.exception?.message ?: "Login Gagal"
+                    )
+                }
+            }
+    }
+
+    private fun checkRole(uid: String) {
+        // Cek apakah UID ada di koleksi 'customers'
+        firestore.collection("customers").document(uid).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    // Valid: User adalah Customer
+                    loginUiState = loginUiState.copy(
+                        isLoading = false,
+                        isSuccess = true,
+                        errorMessage = null
+                    )
+                } else {
+                    // Invalid: User login tapi bukan Customer (Mungkin Owner)
+                    auth.signOut() // Logout paksa
+                    loginUiState = loginUiState.copy(
+                        isLoading = false,
+                        isSuccess = false,
+                        errorMessage = "Akun Anda tidak terdaftar sebagai Customer. Coba login di Owner."
+                    )
+                }
+            }
+            .addOnFailureListener { e ->
+                auth.signOut()
+                loginUiState = loginUiState.copy(
+                    isLoading = false,
+                    isSuccess = false,
+                    errorMessage = "Gagal memverifikasi role: ${e.message}"
+                )
+            }
+    }
+
     fun resetState() {
-        _uiState.update { LoginUiState() }
+        loginUiState = LoginUiState()
     }
 }
