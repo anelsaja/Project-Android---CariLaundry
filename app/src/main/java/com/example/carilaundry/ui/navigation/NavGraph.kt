@@ -68,15 +68,21 @@ fun NavGraph() {
     )
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
+        modifier = Modifier.fillMaxSize(),bottomBar = {
+            // Cek apakah rute saat ini perlu menampilkan Bottom Bar
             if (currentRoute in bottomRoutes) {
+                // Hanya tampilkan BottomNavBar Customer jika sedang di rute customer
                 if (currentRoute?.startsWith("customer") == true) {
-                     BottomNavBar(navController = navController)
+                    BottomNavBar(navController = navController)
                 }
+                // Jika nanti Anda buat BottomNavBar untuk Owner, tambahkan di sini:
+                // else if (currentRoute?.startsWith("owner") == true) {
+                //    OwnerBottomNavBar(navController = navController)
+                // }
             }
         }
     ) { innerPadding: PaddingValues ->
+        // ... NavHost ...
         NavHost(
             navController = navController,
             startDestination = "customer/login",

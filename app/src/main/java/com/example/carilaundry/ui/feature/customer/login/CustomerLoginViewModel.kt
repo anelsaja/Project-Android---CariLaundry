@@ -64,22 +64,33 @@ class CustomerLoginViewModel : ViewModel() {
 
     private fun checkRole(uid: String) {
         // Cek apakah UID ada di koleksi 'customers'
-        firestore.collection("customers").document(uid).get()
+        firestore.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
                 if (document.exists()) {
-                    // Valid: User adalah Customer
-                    loginUiState = loginUiState.copy(
-                        isLoading = false,
-                        isSuccess = true,
-                        errorMessage = null
-                    )
+                    val role = document.getString("role") //ambil nilai dari dokumen users
+                    if (role=="customer"){
+                        // berhasil masuk
+                        loginUiState = loginUiState.copy(
+                            isLoading = false,
+                            isSuccess = true,
+                            errorMessage = null
+                        )
+                    }else{
+                        //user dengan role owner, mencoba masuk sebagai customer
+                        auth.signOut()
+                        loginUiState = loginUiState.copy(
+                            isLoading = false,
+                            isSuccess = false,
+                            errorMessage = "Akun ini terdaftar sebagai owner, silahkan login sebagai owner."
+                        )
+                    }
                 } else {
-                    // Invalid: User login tapi bukan Customer (Mungkin Owner)
+                    // user tidak ditemukan di data users
                     auth.signOut() // Logout paksa
                     loginUiState = loginUiState.copy(
                         isLoading = false,
                         isSuccess = false,
-                        errorMessage = "Akun Anda tidak terdaftar sebagai Customer. Coba login di Owner."
+                        errorMessage = "Data user tidak ditemukan di database."
                     )
                 }
             }
