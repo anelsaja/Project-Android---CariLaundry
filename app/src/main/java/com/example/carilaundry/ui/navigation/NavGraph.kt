@@ -72,10 +72,11 @@ fun NavGraph() {
             // ================= AUTH =================
             composable("customer/login") {
                 CustomerLoginScreen(
-                    onLogin = { email, password ->
-                        // Logika login sederhana (bisa diganti nanti)
-                        if (email == "customer" && password == "123")
-                            navController.navigate("customer/home")
+                    onLoginSuccess = {
+                        // Jika login sukses (dari ViewModel), pindah ke Home
+                        navController.navigate("customer/home") {
+                            popUpTo("customer/login") { inclusive = true }
+                        }
                     },
                     onRegisterClicked = { navController.navigate("customer/register") },
                     onSwitchToOwner = { navController.navigate("owner/login") }
@@ -84,9 +85,10 @@ fun NavGraph() {
 
             composable("owner/login") {
                 OwnerLoginScreen(
-                    onLogin = { email, password ->
-                        if (email == "owner" && password == "123") {
-                            navController.navigate("owner/home")
+                    onLoginSuccess = {
+                        // Pindah ke Home Owner
+                        navController.navigate("owner/home") {
+                            popUpTo("owner/login") { inclusive = true }
                         }
                     },
                     onRegisterClicked = { navController.navigate("owner/register") },
@@ -104,9 +106,10 @@ fun NavGraph() {
 
             composable("customer/register") {
                 CustomerRegisterScreen(
-                    onRegister = { _, _, _ ->
-                        navController.navigate("customer/home") {
-                            popUpTo("customer/login") { inclusive = true }
+                    onRegisterSuccess = {
+                        // Setelah daftar, bisa ke login atau langsung home
+                        navController.navigate("customer/login") {
+                            popUpTo("customer/register") { inclusive = true }
                         }
                     },
                     onLoginClicked = { navController.popBackStack() }
@@ -115,9 +118,10 @@ fun NavGraph() {
 
             composable("owner/register") {
                 OwnerRegisterScreen(
-                    onRegister = { _, _, _, _, _, _ ->
+                    onRegisterSuccess = {
+                        // Sukses daftar -> Pindah ke Home Owner
                         navController.navigate("owner/home") {
-                            popUpTo("owner/login") { inclusive = true }
+                            popUpTo("owner/register") { inclusive = true }
                         }
                     },
                     onSignInClicked = { navController.popBackStack() }
@@ -144,7 +148,10 @@ fun NavGraph() {
             composable("customer/orders") {
                 CustomerOrdersScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenOrder = { /* orderId -> Handle detail order */ }
+                    onOpenOrder = { orderId ->
+                        // Navigasi ke detail pesanan (Progress pengerjaan)
+                        navController.navigate("customer/detail_pesanan/$orderId")
+                    }
                 )
             }
 
@@ -194,11 +201,15 @@ fun NavGraph() {
                 )
             }
 
-            composable("customer/order_success/{id}") {
-                // ID bisa digunakan jika perlu menampilkan data order sukses
+            composable("customer/order_success?name={name}&address={address}",
+                arguments = listOf(
+                    navArgument("name") { defaultValue = "Laundry" },
+                    navArgument("address") { defaultValue = "-" }
+                )
+            ) {
                 OrderSuccessScreen(
-                    onBack = { navController.popBackStack() },
                     onOk = {
+                        // Kembali ke Home dan hapus semua backstack order
                         navController.navigate("customer/home") {
                             popUpTo("customer/home") { inclusive = true }
                         }
@@ -220,10 +231,17 @@ fun NavGraph() {
             composable("owner/home") {
                 OwnerOrdersScreen(
                     onDetailClick = { order ->
+                        // Navigasi ke Detail Pesanan Owner (akan kita buat nanti)
                         navController.navigate("owner/detail_pesanan/${order.id}")
                     },
-                    onOpenNotifications = { navController.navigate("owner/notifications") },
-                    onOpenProfile = { navController.navigate("owner/profile") }
+                    onOpenNotifications = {
+                        // Navigasi ke Notifikasi Owner (akan kita buat nanti)
+                        navController.navigate("owner/notifications")
+                    },
+                    onOpenProfile = {
+                        // Navigasi ke Profil Owner (akan kita buat nanti)
+                        navController.navigate("owner/profile")
+                    }
                 )
             }
 

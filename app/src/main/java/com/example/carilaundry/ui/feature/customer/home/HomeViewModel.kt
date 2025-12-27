@@ -1,29 +1,22 @@
 package com.example.carilaundry.ui.feature.customer.home
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.carilaundry.domain.model.Laundry
 import com.example.carilaundry.domain.usecase.GetLaundryListUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
-
-// Status tampilan (Loading, Success, Error)
-sealed interface HomeUiState {
-    data class Success(val laundryList: List<Laundry>) : HomeUiState
-    object Error : HomeUiState
-    object Loading : HomeUiState
-}
 
 class HomeViewModel(
     private val getLaundryListUseCase: GetLaundryListUseCase
 ) : ViewModel() {
 
-    // State yang akan diamati oleh UI
-    var homeUiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
-        private set
+    // Inisialisasi state awal (Loading false, List kosong, Error null)
+    private val _uiState = MutableStateFlow(HomeUiState())
+    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         getLaundryList()
@@ -31,13 +24,34 @@ class HomeViewModel(
 
     fun getLaundryList() {
         viewModelScope.launch {
-            homeUiState = HomeUiState.Loading
+            // 1. Set Loading = true, hapus error lama
+            _uiState.update { currentState ->
+                currentState.copy(
+                    isLoading = true,
+                    errorMessage = null
+                )
+            }
+
             try {
-                // Panggil UseCase (Dummy Data akan langsung masuk sini)
+                // 2. Ambil data
                 val list = getLaundryListUseCase()
-                homeUiState = HomeUiState.Success(list)
+
+                // 3. Jika sukses: Matikan loading, masukkan list
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        laundryList = list,
+                        errorMessage = null
+                    )
+                }
             } catch (e: IOException) {
-                homeUiState = HomeUiState.Error
+                // 4. Jika error: Matikan loading, simpan pesan error
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        isLoading = false,
+                        errorMessage = "Gagal memuat data: ${e.message}"
+                    )
+                }
             }
         }
     }

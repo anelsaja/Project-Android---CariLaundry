@@ -19,29 +19,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.OwnerOrder
 import com.example.carilaundry.ui.theme.*
 
-// ================== DATA MODEL ==================
-data class Order(
-    val id: String,
-    val customerName: String,
-    val address: String,
-    val service: String,
-    val weightEstimate: String,
-    val priceText: String
-)
-
-// ================== SCREEN ==================
 @Composable
 fun OwnerOrdersScreen(
-    orders: List<Order> = remember { sampleOrders() },
-    onDetailClick: (Order) -> Unit = {},
+    // Inject ViewModel
+    viewModel: OwnerOrdersViewModel = viewModel(),
+    onDetailClick: (OwnerOrder) -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenProfile: () -> Unit = {}
 ) {
-    // Variable search text (jika nanti ingin difungsikan)
-    // var searchText by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = Background
@@ -52,7 +43,7 @@ fun OwnerOrdersScreen(
                 .fillMaxSize()
         ) {
 
-            // 1. HEADER (Tanpa Favorite)
+            // 1. HEADER
             HomeHeader(
                 onNotifClick = onOpenNotifications,
                 onProfileClick = onOpenProfile
@@ -67,16 +58,37 @@ fun OwnerOrdersScreen(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
             )
 
-            // 3. LIST PESANAN
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(orders) { order ->
-                    OrderItemCard(
-                        order = order,
-                        onClick = { onDetailClick(order) }
+            // 3. LIST PESANAN (Loading / List / Empty)
+            Box(modifier = Modifier.fillMaxSize()) {
+
+                // A. Loading
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Primary
+                    )
+                }
+                // B. List Data
+                else if (uiState.orders.isNotEmpty()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(uiState.orders) { order ->
+                            OrderItemCard(
+                                order = order,
+                                onClick = { onDetailClick(order) }
+                            )
+                        }
+                    }
+                }
+                // C. Empty
+                else {
+                    Text(
+                        text = "Belum ada pesanan masuk",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.Gray
                     )
                 }
             }
@@ -84,7 +96,8 @@ fun OwnerOrdersScreen(
     }
 }
 
-// ================== HEADER COMPONENT ==================
+// ================== COMPONENTS ==================
+
 @Composable
 fun HomeHeader(
     onNotifClick: () -> Unit,
@@ -112,8 +125,6 @@ fun HomeHeader(
                 .padding(start = 12.dp)
         )
 
-        // --- ICON FAVORITE DIHAPUS ---
-
         Icon(
             painter = painterResource(id = R.drawable.outline_notifications_24),
             contentDescription = "Notification",
@@ -136,11 +147,9 @@ fun HomeHeader(
     }
 }
 
-
-// ================== ORDER ITEM CARD ==================
 @Composable
 fun OrderItemCard(
-    order: Order,
+    order: OwnerOrder,
     onClick: () -> Unit
 ) {
     Card(
@@ -152,11 +161,11 @@ fun OrderItemCard(
     ) {
         Row(
             modifier = Modifier
-                .background(Primary) // Menggunakan Primary color agar senada
+                .background(Primary) // Menggunakan Primary color
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar circle
+            // Avatar Circle
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -200,7 +209,7 @@ fun OrderItemCard(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Tombol Detail kecil
+                // Tombol Detail Kecil
                 Surface(
                     color = Color.White.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(12.dp),
@@ -220,29 +229,17 @@ fun OrderItemCard(
                     text = order.priceText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFB9F6CA) // A light green/white accent for price
+                    color = Color(0xFFB9F6CA) // A light green/white accent
                 )
             }
         }
     }
 }
 
-// ================== DUMMY DATA ==================
-fun sampleOrders() = List(5) {
-    Order(
-        id = it.toString(),
-        customerName = "Mas Anel",
-        address = "Jalan Senopati No. 3, Kampungin",
-        service = "Cuci & Lipat",
-        weightEstimate = "3kg",
-        priceText = "Rp 24.000"
-    )
-}
-
 @Preview(showBackground = true)
 @Composable
 fun OwnerOrdersPreview() {
-    CariLaundryTheme {
-        OwnerOrdersScreen()
-    }
+    // Karena ViewModel inject, preview langsung sering error.
+    // Biasanya kita buat Wrapper dengan dummy data untuk preview,
+    // tapi kode di atas sudah cukup untuk dijalankan di Emulator.
 }

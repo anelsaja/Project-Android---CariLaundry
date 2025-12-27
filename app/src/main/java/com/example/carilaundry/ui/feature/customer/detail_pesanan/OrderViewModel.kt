@@ -1,35 +1,25 @@
 package com.example.carilaundry.ui.feature.customer.detail_pesanan
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.carilaundry.domain.model.Laundry
 import com.example.carilaundry.domain.repository.LaundryRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-// Status UI untuk halaman Order
-sealed interface OrderUiState {
-    object Loading : OrderUiState
-    object Error : OrderUiState
-    data class Success(
-        val laundry: Laundry,
-        val weightInput: String = "",
-        val estimatedPrice: Double = 0.0
-    ) : OrderUiState
-}
 
 class OrderViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: LaundryRepository
 ) : ViewModel() {
 
-    private val laundryId: String = checkNotNull(savedStateHandle["id"]) // Sesuai nama argumen di NavGraph
+    // Mengambil ID dari URL navigasi (navArgument "laundryId")
+    private val laundryId: String = checkNotNull(savedStateHandle["laundryId"])
 
-    var uiState: OrderUiState by mutableStateOf(OrderUiState.Loading)
-        private set
+    private val _uiState = MutableStateFlow(OrderUiState())
+    val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
     init {
         loadLaundryData()
@@ -37,28 +27,35 @@ class OrderViewModel(
 
     private fun loadLaundryData() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
             val laundry = repository.getLaundryById(laundryId)
+
             if (laundry != null) {
-                uiState = OrderUiState.Success(laundry = laundry)
+                _uiState.update {
+                    it.copy(isLoading = false, laundry = laundry)
+                }
             } else {
-                uiState = OrderUiState.Error
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Data laundry tidak ditemukan")
+                }
             }
         }
     }
 
-    // Fungsi untuk update berat cucian dan hitung harga
     fun onWeightChanged(newWeight: String) {
-        val currentState = uiState
-        if (currentState is OrderUiState.Success) {
-            val weight = newWeight.toDoubleOrNull() ?: 0.0
-            // Asumsi harga per kg ada di dummy/model, atau kita set default 5000 dulu
-            val pricePerKg = 5000.0
-            val total = weight * pricePerKg
+        val weight = newWeight.toDoubleOrNull() ?: 0.0
+        val pricePerKg = 6000.0 // Harga default, bisa diambil dari model Laundry nanti
 
-            uiState = currentState.copy(
+        _uiState.update {
+            it.copy(
                 weightInput = newWeight,
-                estimatedPrice = total
+                estimatedPrice = weight * pricePerKg
             )
         }
+    }
+
+    fun onServiceChanged(newService: String) {
+        _uiState.update { it.copy(selectedService = newService) }
     }
 }
