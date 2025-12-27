@@ -18,28 +18,27 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.carilaundry.R
 import com.example.carilaundry.domain.model.OwnerOrderDetail
-import com.example.carilaundry.ui.AppViewModelProvider // Pastikan Import Ini Ada
+import com.example.carilaundry.ui.AppViewModelProvider
 import com.example.carilaundry.ui.theme.CariLaundryTheme
 
 @Composable
 fun DetailPesananScreen(
-    // PERBAIKAN DI SINI: Tambahkan factory
     viewModel: DetailOwnerViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onBack: () -> Unit = {},
     onProcessPickup: (String) -> Unit = {},
     onProcessProgress: (String) -> Unit = {},
     onComplete: (String) -> Unit = {}
 ) {
-    // Ambil state dari ViewModel
-    val uiState by viewModel.uiState.collectAsState()
+    // Gunakan collectAsStateWithLifecycle untuk performa yang lebih baik
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         containerColor = Color(0xFFE0F7FA),
         bottomBar = {
             val detail = uiState.detail
-            // Tampilkan tombol aksi hanya jika data sudah dimuat (tidak null)
             if (detail != null) {
                 Column(
                     modifier = Modifier
@@ -48,7 +47,6 @@ fun DetailPesananScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Tombol 1: Jemput
                     Button(
                         onClick = { onProcessPickup(detail.id) },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -58,7 +56,6 @@ fun DetailPesananScreen(
                         Text("Proses Penjemputan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    // Tombol 2: Proses
                     Button(
                         onClick = { onProcessProgress(detail.id) },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -68,7 +65,6 @@ fun DetailPesananScreen(
                         Text("Proses Pengerjaan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    // Tombol 3: Selesai
                     Button(
                         onClick = { onComplete(detail.id) },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -84,7 +80,6 @@ fun DetailPesananScreen(
 
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-            // 1. Loading State
             if (uiState.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
@@ -92,7 +87,6 @@ fun DetailPesananScreen(
                 )
             }
 
-            // 2. Success State
             val detail = uiState.detail
             if (detail != null) {
                 Column(
@@ -102,7 +96,6 @@ fun DetailPesananScreen(
                 ) {
 
                     OwnerDetailHeader(onBack)
-
                     CustomerInfoCard(detail)
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -153,7 +146,6 @@ fun DetailPesananScreen(
                 }
             }
 
-            // 3. Error State
             if (uiState.errorMessage != null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("Error: ${uiState.errorMessage}", color = Color.Red)
@@ -163,9 +155,7 @@ fun DetailPesananScreen(
     }
 }
 
-// ================= KOMPONEN HELPER (Tidak Berubah) =================
-// (Salin ulang komponen helper dari kode sebelumnya: OwnerDetailHeader, CustomerInfoCard, dll)
-// Agar kode tidak terlalu panjang, pastikan komponen-komponen helper tersebut tetap ada di bawah sini.
+// ================= KOMPONEN HELPER =================
 
 @Composable
 fun OwnerDetailHeader(onBack: () -> Unit) {

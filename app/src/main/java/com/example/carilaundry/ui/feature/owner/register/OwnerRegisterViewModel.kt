@@ -1,68 +1,109 @@
 package com.example.carilaundry.ui.feature.owner.register
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class OwnerRegisterViewModel : ViewModel() {
 
-    private val _uiState = MutableStateFlow(OwnerRegisterUiState())
-    val uiState: StateFlow<OwnerRegisterUiState> = _uiState.asStateFlow()
+    var registerUiState by mutableStateOf(OwnerRegisterUiState())
+        private set
 
-    // --- Update Functions ---
-    fun onBusinessNameChange(v: String) = _uiState.update { it.copy(businessName = v, errorMessage = null) }
-    fun onOwnerNameChange(v: String) = _uiState.update { it.copy(ownerName = v, errorMessage = null) }
-    fun onEmailChange(v: String) = _uiState.update { it.copy(email = v, errorMessage = null) }
-    fun onPhoneChange(v: String) = _uiState.update { it.copy(phone = v, errorMessage = null) }
-    fun onAddressChange(v: String) = _uiState.update { it.copy(address = v, errorMessage = null) }
-    fun onPasswordChange(v: String) = _uiState.update { it.copy(password = v, errorMessage = null) }
-    fun onConfirmPasswordChange(v: String) = _uiState.update { it.copy(confirmPassword = v, errorMessage = null) }
+    private val auth = FirebaseAuth.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
-    fun register() {
-        val state = _uiState.value
+    fun onEvent(event: OwnerRegisterEvent) {
+        when (event) {
+            is OwnerRegisterEvent.BusinessNameChanged -> registerUiState = registerUiState.copy(businessName = event.businessName)
+            is OwnerRegisterEvent.OwnerNameChanged -> registerUiState = registerUiState.copy(ownerName = event.ownerName)
+            is OwnerRegisterEvent.EmailChanged -> registerUiState = registerUiState.copy(email = event.email)
+            is OwnerRegisterEvent.PhoneChanged -> registerUiState = registerUiState.copy(phone = event.phone)
+            is OwnerRegisterEvent.AddressChanged -> registerUiState = registerUiState.copy(address = event.address)
+            is OwnerRegisterEvent.PasswordChanged -> registerUiState = registerUiState.copy(password = event.password)
+            is OwnerRegisterEvent.ConfirmPasswordChanged -> registerUiState = registerUiState.copy(confirmPassword = event.confirmPassword)
+            is OwnerRegisterEvent.RegisterClicked -> performRegister()
+            is OwnerRegisterEvent.ErrorDismissed -> registerUiState = registerUiState.copy(errorMessage = null)
+        }
+    }
 
-        // 1. Validasi
-        if (state.businessName.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Nama usaha wajib diisi") }
+    private fun performRegister() {
+        val s = registerUiState
+
+        // Validasi
+        if (s.businessName.isBlank() || s.ownerName.isBlank() || s.email.isBlank() || s.password.isBlank()) {
+            registerUiState = registerUiState.copy(errorMessage = "Semua field wajib diisi")
             return
         }
-        if (state.ownerName.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Nama pemilik wajib diisi") }
+        if (s.password.length < 6) {
+            registerUiState = registerUiState.copy(errorMessage = "Password minimal 6 karakter")
             return
         }
-        if (state.email.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email wajib diisi") }
-            return
-        }
-        if (state.password.length < 6) {
-            _uiState.update { it.copy(errorMessage = "Password minimal 6 karakter") }
-            return
-        }
-        if (state.password != state.confirmPassword) {
-            _uiState.update { it.copy(errorMessage = "Konfirmasi password tidak cocok") }
+        if (s.password != s.confirmPassword) {
+            registerUiState = registerUiState.copy(errorMessage = "Konfirmasi password tidak cocok")
             return
         }
 
-        // 2. Proses Register
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+        registerUiState = registerUiState.copy(isLoading = true, errorMessage = null)
 
-            // Simulasi Network
-            delay(2000)
+        auth.createUserWithEmailAndPassword(s.email, s.password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val userId = auth.currentUser?.uid
+                    if (userId != null) {
+                        val ownerMap = hashMapOf(
+                            "businessName" to s.businessName,
+                            "ownerName" to s.ownerName,
+                            "email" to s.email,
+                            "phone" to s.phone,
+                            "address" to s.address,
+                            "role" to "owner"
+                        )
 
-            // Sukses
-            _uiState.update {
-                it.copy(isLoading = false, isSuccess = true)
+                        db.collection("owners").document(userId).set(ownerMap)
+                            .addOnSuccessListener {
+                                registerUiState = registerUiState.copy(isLoading = false, isSuccess = true)
+                            }
+                            .addOnFailureListener { e ->
+                                registerUiState = registerUiState.copy(isLoading = false, errorMessage = "Gagal simpan data: ${e.message}")
+                            }
+                    } else {
+                        registerUiState = registerUiState.copy(isLoading = false, errorMessage = "Gagal mendapatkan User ID")
+                    }
+                } else {
+                    registerUiState = registerUiState.copy(isLoading = false, errorMessage = task.exception?.message ?: "Registrasi Gagal")
+                }
             }
-        }
     }
 
     fun resetState() {
-        _uiState.update { OwnerRegisterUiState() }
+        registerUiState = OwnerRegisterUiState()
     }
+}
+
+//data class OwnerRegisterUiState(
+//    val businessName: String = "",
+//    val ownerName: String = "",
+//    val email: String = "",
+//    val phone: String = "",
+//    val address: String = "",
+//    val password: String = "",
+//    val confirmPassword: String = "",
+//    val isLoading: Boolean = false,
+//    val isSuccess: Boolean = false,
+//    val errorMessage: String? = null
+//)
+
+sealed interface OwnerRegisterEvent {
+    data class BusinessNameChanged(val businessName: String) : OwnerRegisterEvent
+    data class OwnerNameChanged(val ownerName: String) : OwnerRegisterEvent
+    data class EmailChanged(val email: String) : OwnerRegisterEvent
+    data class PhoneChanged(val phone: String) : OwnerRegisterEvent
+    data class AddressChanged(val address: String) : OwnerRegisterEvent
+    data class PasswordChanged(val password: String) : OwnerRegisterEvent
+    data class ConfirmPasswordChanged(val confirmPassword: String) : OwnerRegisterEvent
+    object RegisterClicked : OwnerRegisterEvent
+    object ErrorDismissed : OwnerRegisterEvent
 }

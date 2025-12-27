@@ -18,7 +18,8 @@ class OrderViewModel(
     // Mengambil ID dari URL navigasi (navArgument "laundryId")
     private val laundryId: String = checkNotNull(savedStateHandle["laundryId"])
 
-    private val _uiState = MutableStateFlow(OrderUiState())
+    // Inisialisasi state awal sebagai Loading
+    private val _uiState = MutableStateFlow<OrderUiState>(OrderUiState.Loading)
     val uiState: StateFlow<OrderUiState> = _uiState.asStateFlow()
 
     init {
@@ -27,35 +28,47 @@ class OrderViewModel(
 
     private fun loadLaundryData() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            // Set Loading state (redundant in init but good for reload)
+            _uiState.value = OrderUiState.Loading
 
             val laundry = repository.getLaundryById(laundryId)
 
             if (laundry != null) {
-                _uiState.update {
-                    it.copy(isLoading = false, laundry = laundry)
-                }
+                // Berhasil memuat data -> Pindah ke state Success
+                _uiState.value = OrderUiState.Success(
+                    laundry = laundry,
+                    weightInput = "",
+                    estimatedPrice = 0.0
+                )
             } else {
-                _uiState.update {
-                    it.copy(isLoading = false, errorMessage = "Data laundry tidak ditemukan")
-                }
+                // Gagal memuat data -> Pindah ke state Error
+                _uiState.value = OrderUiState.Error("Data laundry tidak ditemukan")
             }
         }
     }
 
     fun onWeightChanged(newWeight: String) {
-        val weight = newWeight.toDoubleOrNull() ?: 0.0
-        val pricePerKg = 6000.0 // Harga default, bisa diambil dari model Laundry nanti
+        val currentState = _uiState.value
+        if (currentState is OrderUiState.Success) {
+            val weight = newWeight.toDoubleOrNull() ?: 0.0
+            val pricePerKg = 6000.0 // Harga default, bisa diambil dari model Laundry nanti
 
-        _uiState.update {
-            it.copy(
-                weightInput = newWeight,
-                estimatedPrice = weight * pricePerKg
-            )
+            // Update state Success dengan data baru
+            _uiState.update {
+                currentState.copy(
+                    weightInput = newWeight,
+                    estimatedPrice = weight * pricePerKg
+                )
+            }
         }
     }
 
     fun onServiceChanged(newService: String) {
-        _uiState.update { it.copy(selectedService = newService) }
+        val currentState = _uiState.value
+        if (currentState is OrderUiState.Success) {
+            _uiState.update {
+                currentState.copy(selectedService = newService)
+            }
+        }
     }
 }

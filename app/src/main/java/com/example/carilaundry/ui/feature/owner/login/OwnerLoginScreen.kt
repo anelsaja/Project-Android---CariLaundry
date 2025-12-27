@@ -1,6 +1,5 @@
 package com.example.carilaundry.ui.feature.owner.login
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,20 +20,15 @@ import com.example.carilaundry.ui.theme.*
 
 @Composable
 fun OwnerLoginScreen(
-    // Inject ViewModel
     viewModel: OwnerLoginViewModel = viewModel(),
-    // Callback ketika sukses (menuju Home)
     onLoginSuccess: () -> Unit = {},
-    onRegisterClicked: () -> Unit = {},
-    onSwitchToCustomer: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {}, // Ubah nama parameter
+    onNavigateToCustomer: () -> Unit = {} // Ubah nama parameter
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
+    val uiState = viewModel.loginUiState
 
-    // Efek Samping: Navigasi jika sukses
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            Toast.makeText(context, "Selamat Datang, Owner!", Toast.LENGTH_SHORT).show()
             onLoginSuccess()
             viewModel.resetState()
         }
@@ -50,7 +43,6 @@ fun OwnerLoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
 
-        // LOGO
         Image(
             painter = painterResource(id = R.drawable.icon),
             contentDescription = "Logo",
@@ -59,7 +51,6 @@ fun OwnerLoginScreen(
                 .padding(bottom = 32.dp)
         )
 
-        // JUDUL OWNER
         Text(
             text = "Masuk Owner",
             fontSize = 20.sp,
@@ -69,7 +60,6 @@ fun OwnerLoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // SUBJUDUL
         Text(
             text = "Masuk untuk mengelola laundry Anda",
             fontSize = 14.sp,
@@ -78,79 +68,54 @@ fun OwnerLoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // EMAIL INPUT
         OutlinedTextField(
             value = uiState.email,
-            onValueChange = { viewModel.onEmailChange(it) },
+            onValueChange = { viewModel.onEvent(OwnerLoginEvent.EmailChanged(it)) },
             label = { Text("Email", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            isError = uiState.errorMessage != null,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OnSurface,
-                unfocusedTextColor = OnSurface,
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Outline,
-                focusedLabelColor = Primary,
-                unfocusedLabelColor = OnSurface,
-                cursorColor = Primary
-            )
+            enabled = !uiState.isLoading,
+            colors = customTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // PASSWORD INPUT
         OutlinedTextField(
             value = uiState.password,
-            onValueChange = { viewModel.onPasswordChange(it) },
+            onValueChange = { viewModel.onEvent(OwnerLoginEvent.PasswordChanged(it)) },
             label = { Text("Password", color = OnSurface) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            isError = uiState.errorMessage != null,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OnSurface,
-                unfocusedTextColor = OnSurface,
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Outline,
-                focusedLabelColor = Primary,
-                unfocusedLabelColor = OnSurface,
-                cursorColor = Primary
-            )
+            enabled = !uiState.isLoading,
+            colors = customTextFieldColors()
         )
-
-        // Pesan Error
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
-                modifier = Modifier
-                    .padding(top = 4.dp)
-                    .align(Alignment.Start)
-            )
-        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // BUTTON LOGIN
+        if (uiState.errorMessage != null) {
+            Text(
+                text = uiState.errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
         Button(
-            onClick = { viewModel.login() },
-            enabled = !uiState.isLoading,
+            onClick = { viewModel.onEvent(OwnerLoginEvent.LoginClicked) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(8.dp),
+            enabled = !uiState.isLoading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
                 contentColor = OnPrimary
             )
         ) {
             if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    color = OnPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = OnPrimary)
             } else {
                 Text(
                     text = "Masuk",
@@ -162,8 +127,7 @@ fun OwnerLoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // DAFTAR
-        TextButton(onClick = onRegisterClicked) {
+        TextButton(onClick = onNavigateToRegister, enabled = !uiState.isLoading) {
             Text(
                 text = "Belum punya akun? Daftar",
                 color = Primary,
@@ -171,8 +135,7 @@ fun OwnerLoginScreen(
             )
         }
 
-        // SWITCH ROLE
-        TextButton(onClick = onSwitchToCustomer) {
+        TextButton(onClick = onNavigateToCustomer, enabled = !uiState.isLoading) {
             Text(
                 text = "Masuk sebagai Customer",
                 color = Primary
@@ -181,10 +144,13 @@ fun OwnerLoginScreen(
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun OwnerLoginPreview() {
-    CariLaundryTheme {
-        OwnerLoginScreen()
-    }
-}
+fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = OnSurface,
+    unfocusedTextColor = OnSurface,
+    focusedBorderColor = Primary,
+    unfocusedBorderColor = Outline,
+    focusedLabelColor = Primary,
+    unfocusedLabelColor = OnSurface,
+    cursorColor = Primary
+)

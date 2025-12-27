@@ -23,17 +23,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
 import com.example.carilaundry.domain.model.CustomerOrder
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-import com.example.carilaundry.ui.theme.OnBackground
 
 // ================= SCREEN =================
 @Composable
 fun CustomerOrdersScreen(
-    // Inject ViewModel
     viewModel: CustomerOrdersViewModel = viewModel(),
     onBack: () -> Unit = {},
-    onOpenOrder: (String) -> Unit = {}
+    onNavigateToDetail: (String) -> Unit = {} // Parameter disesuaikan dengan NavGraph
 ) {
-    // Ambil state
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -42,10 +39,8 @@ fun CustomerOrdersScreen(
             .background(Color(0xFFE0F7FA))
     ) {
 
-        // 🔷 HEADER
         OrdersHeader(onBack)
 
-        // 🔷 TITLE
         Text(
             text = "Daftar Pesanan",
             fontSize = 20.sp,
@@ -54,17 +49,14 @@ fun CustomerOrdersScreen(
             modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
         )
 
-        // 🔷 CONTENT (Loading / List / Empty)
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // 1. Loading
             if (uiState.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
                     color = Color(0xFF3F7EC2)
                 )
             }
-            // 2. List Data
             else if (uiState.orders.isNotEmpty()) {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -72,12 +64,11 @@ fun CustomerOrdersScreen(
                 ) {
                     items(uiState.orders) { order ->
                         OrderCard(order) {
-                            onOpenOrder(order.id)
+                            onNavigateToDetail(order.id)
                         }
                     }
                 }
             }
-            // 3. Empty State
             else {
                 Text(
                     text = "Belum ada pesanan",
@@ -89,7 +80,7 @@ fun CustomerOrdersScreen(
     }
 }
 
-// ================= KOMPONEN PENDUKUNG (TETAP SAMA) =================
+// ================= KOMPONEN PENDUKUNG =================
 
 @Composable
 fun OrdersHeader(onBack: () -> Unit) {
@@ -153,7 +144,6 @@ fun OrderCard(order: CustomerOrder, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Status Badge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -185,7 +175,6 @@ fun OrderRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Menggunakan Text Color default / OnBackground agar terlihat
         Text(text = label, color = Color.Black)
         Text(text = value, fontWeight = FontWeight.Bold, color = Color.Black)
     }

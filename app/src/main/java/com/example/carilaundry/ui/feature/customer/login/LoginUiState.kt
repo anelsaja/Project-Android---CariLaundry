@@ -1,9 +1,3 @@
+// File ini sudah tidak digunakan.
+// Silakan gunakan CustomerLoginUiState.kt sebagai gantinya.
 package com.example.carilaundry.ui.feature.customer.login
-
-data class LoginUiState(
-    val email: String = "",
-    val password: String = "",
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val isLoginSuccess: Boolean = false
-)

@@ -1,6 +1,5 @@
 package com.example.carilaundry.ui.feature.customer.login
 
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -22,20 +21,17 @@ import com.example.carilaundry.ui.theme.*
 
 @Composable
 fun CustomerLoginScreen(
-    viewModel: CustomerLoginViewModel = viewModel(), // Inject ViewModel
-    onLoginSuccess: () -> Unit = {}, // Callback jika sukses
-    onRegisterClicked: () -> Unit = {},
-    onSwitchToOwner: () -> Unit = {}
+    viewModel: CustomerLoginViewModel = viewModel(),
+    onLoginSuccess: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {}, // Ubah nama parameter
+    onNavigateToOwner: () -> Unit = {}    // Ubah nama parameter
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
+    val uiState = viewModel.loginUiState
 
-    // Efek Samping: Cek jika login sukses, lalu navigasi
-    LaunchedEffect(uiState.isLoginSuccess) {
-        if (uiState.isLoginSuccess) {
-            Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
             onLoginSuccess()
-            viewModel.resetState() // Opsional: Reset form
+            viewModel.resetState()
         }
     }
 
@@ -48,7 +44,6 @@ fun CustomerLoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
 
-        // LOGO
         Image(
             painter = painterResource(id = R.drawable.icon),
             contentDescription = "Logo",
@@ -57,7 +52,6 @@ fun CustomerLoginScreen(
                 .padding(bottom = 32.dp)
         )
 
-        // JUDUL
         Text(
             text = "Masuk Customer",
             fontSize = 20.sp,
@@ -75,67 +69,47 @@ fun CustomerLoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // EMAIL INPUT
         OutlinedTextField(
-            value = uiState.email, // Ambil dari ViewModel
-            onValueChange = { viewModel.onEmailChange(it) }, // Kirim ke ViewModel
+            value = uiState.email,
+            onValueChange = { viewModel.onEvent(LoginEvent.EmailChanged(it)) },
             label = { Text("Email", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            isError = uiState.errorMessage != null, // Merah jika error
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OnSurface,
-                unfocusedTextColor = OnSurface,
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Outline,
-                focusedLabelColor = Primary,
-                unfocusedLabelColor = OnSurface,
-                cursorColor = Primary
-            )
+            enabled = !uiState.isLoading,
+            colors = customTextFieldColors()
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // PASSWORD INPUT
         OutlinedTextField(
-            value = uiState.password, // Ambil dari ViewModel
-            onValueChange = { viewModel.onPasswordChange(it) }, // Kirim ke ViewModel
+            value = uiState.password,
+            onValueChange = { viewModel.onEvent(LoginEvent.PasswordChanged(it)) },
             label = { Text("Password", color = OnSurface) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            isError = uiState.errorMessage != null, // Merah jika error
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = OnSurface,
-                unfocusedTextColor = OnSurface,
-                focusedBorderColor = Primary,
-                unfocusedBorderColor = Outline,
-                focusedLabelColor = Primary,
-                unfocusedLabelColor = OnSurface,
-                cursorColor = Primary
-            )
+            enabled = !uiState.isLoading,
+            colors = customTextFieldColors()
         )
-
-        // PESAN ERROR (Muncul jika ada)
-        if (uiState.errorMessage != null) {
-            Text(
-                text = uiState.errorMessage!!,
-                color = MaterialTheme.colorScheme.error,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
-            )
-        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // BUTTON LOGIN
+        if (uiState.errorMessage != null) {
+            Text(
+                text = uiState.errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
+
         Button(
-            onClick = { viewModel.login() }, // Panggil fungsi Login di ViewModel
-            enabled = !uiState.isLoading,    // Disable tombol saat loading
+            onClick = { viewModel.onEvent(LoginEvent.LoginClicked) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(8.dp),
+            enabled = !uiState.isLoading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = Primary,
                 contentColor = OnPrimary
@@ -143,8 +117,8 @@ fun CustomerLoginScreen(
         ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(
-                    color = OnPrimary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
+                    color = OnPrimary
                 )
             } else {
                 Text(
@@ -157,8 +131,7 @@ fun CustomerLoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // DAFTAR
-        TextButton(onClick = onRegisterClicked) {
+        TextButton(onClick = onNavigateToRegister, enabled = !uiState.isLoading) {
             Text(
                 text = "Belum punya akun? Daftar",
                 color = Primary,
@@ -166,8 +139,7 @@ fun CustomerLoginScreen(
             )
         }
 
-        // SWITCH ROLE
-        TextButton(onClick = onSwitchToOwner) {
+        TextButton(onClick = onNavigateToOwner, enabled = !uiState.isLoading) {
             Text(
                 text = "Masuk sebagai Owner",
                 color = Primary
@@ -176,10 +148,13 @@ fun CustomerLoginScreen(
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun CustomerLoginPreview() {
-    CariLaundryTheme {
-        CustomerLoginScreen()
-    }
-}
+fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = OnSurface,
+    unfocusedTextColor = OnSurface,
+    focusedBorderColor = Primary,
+    unfocusedBorderColor = Outline,
+    focusedLabelColor = Primary,
+    unfocusedLabelColor = OnSurface,
+    cursorColor = Primary
+)

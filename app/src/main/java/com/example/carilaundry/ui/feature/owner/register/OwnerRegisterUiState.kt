@@ -12,3 +12,5 @@ data class OwnerRegisterUiState(
     val isSuccess: Boolean = false,
     val errorMessage: String? = null
 )
+
+
