@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,33 +21,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.NotificationItem
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-
-// ================= DATA MODEL =================
-data class NotificationItem(
-    val id: String,
-    val name: String,
-    val address: String,
-    val message: String,
-    val time: String
-)
 
 // ================= SCREEN =================
 @Composable
 fun NotifikasiCustomerScreen(
+    // Inject ViewModel
+    viewModel: NotificationViewModel = viewModel(),
     onBack: () -> Unit = {},
     onDetailClick: (String) -> Unit = {}
 ) {
-    val notifList = List(6) {
-        NotificationItem(
-            id = it.toString(),
-            name = "Mas Anel",
-            address = "Jalan Senopati No. 3, Kampungin",
-            message = "Melakukan Orderan Pada Laundry xxx",
-            time = "2 jam yang lalu"
-        )
-    }
+    // Ambil state dari ViewModel
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -61,27 +51,47 @@ fun NotifikasiCustomerScreen(
             text = "Notifikasi",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            color = Color(0xFF0D1B2A),
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
         )
 
+        // KONTEN UTAMA (Loading / List / Empty)
+        Box(modifier = Modifier.fillMaxSize()) {
 
-        // LIST
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(notifList) { item ->
-                NotificationItemCard(
-                    item = item,
-                    onDetailClick = { onDetailClick(item.id) }
+            // 1. Loading State
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFF3F7EC2)
+                )
+            }
+            // 2. List State (Jika data ada)
+            else if (uiState.notificationList.isNotEmpty()) {
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.notificationList) { item ->
+                        NotificationItemCard(
+                            item = item,
+                            onDetailClick = { onDetailClick(item.id) }
+                        )
+                    }
+                }
+            }
+            // 3. Empty State (Jika data kosong)
+            else {
+                Text(
+                    text = "Belum ada notifikasi",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Gray
                 )
             }
         }
     }
 }
 
-// ================= HEADER =================
+// ================= HEADER (TETAP SAMA) =================
 @Composable
 fun NotificationHeader(onBack: () -> Unit) {
     Row(
@@ -93,7 +103,7 @@ fun NotificationHeader(onBack: () -> Unit) {
         Icon(
             painter = painterResource(id = R.drawable.baseline_arrow_back_24),
             contentDescription = "Back",
-            tint = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            tint = Color(0xFF0D1B2A),
             modifier = Modifier
                 .size(24.dp)
                 .clickable { onBack() }
@@ -111,14 +121,14 @@ fun NotificationHeader(onBack: () -> Unit) {
             text = "CariLaundry",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            color = Color(0xFF0D1B2A),
             modifier = Modifier.padding(start = 12.dp)
         )
     }
 }
 
 
-// ================= ITEM CARD =================
+// ================= ITEM CARD (TETAP SAMA) =================
 @Composable
 fun NotificationItemCard(
     item: NotificationItem,
@@ -201,14 +211,5 @@ fun NotificationItemCard(
                 }
             }
         }
-    }
-}
-
-// ================= PREVIEW =================
-@Preview(showBackground = true)
-@Composable
-fun NotifikasiCustomerPreview() {
-    CariLaundryTheme {
-        NotifikasiCustomerScreen()
     }
 }

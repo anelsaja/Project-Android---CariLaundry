@@ -1,5 +1,6 @@
 package com.example.carilaundry.ui.feature.owner.register
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -17,31 +19,37 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
 import com.example.carilaundry.ui.theme.*
 
 @Composable
 fun OwnerRegisterScreen(
     modifier: Modifier = Modifier,
-    onRegister: (businessName: String, ownerName: String, email: String, phone: String, address: String, password: String) -> Unit = { _, _, _, _, _, _ -> },
+    // Inject ViewModel
+    viewModel: OwnerRegisterViewModel = viewModel(),
+    // Callback Navigasi
+    onRegisterSuccess: () -> Unit = {},
     onSignInClicked: () -> Unit = {}
 ) {
-    // State Variables
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-    var businessName by remember { mutableStateOf("") }
-    var ownerName by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    // Handle Success Navigation
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            Toast.makeText(context, "Registrasi Owner Berhasil!", Toast.LENGTH_SHORT).show()
+            onRegisterSuccess()
+            viewModel.resetState()
+        }
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(Background)
-            .verticalScroll(scrollState) // Scroll penting karena form owner panjang
+            .verticalScroll(scrollState) // Scroll penting
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
@@ -52,7 +60,7 @@ fun OwnerRegisterScreen(
             painter = painterResource(id = R.drawable.icon),
             contentDescription = "Logo",
             modifier = Modifier
-                .size(120.dp) // Sedikit diperkecil agar muat di layar kecil karena form panjang
+                .size(120.dp)
                 .padding(bottom = 24.dp)
         )
 
@@ -75,12 +83,12 @@ fun OwnerRegisterScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- FORM INPUTS ---
+        // --- FORM INPUTS (Terhubung ke ViewModel) ---
 
         // Nama Usaha
         OutlinedTextField(
-            value = businessName,
-            onValueChange = { businessName = it },
+            value = uiState.businessName,
+            onValueChange = { viewModel.onBusinessNameChange(it) },
             label = { Text("Nama Usaha", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -91,8 +99,8 @@ fun OwnerRegisterScreen(
 
         // Nama Pemilik
         OutlinedTextField(
-            value = ownerName,
-            onValueChange = { ownerName = it },
+            value = uiState.ownerName,
+            onValueChange = { viewModel.onOwnerNameChange(it) },
             label = { Text("Nama Pemilik", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -103,8 +111,8 @@ fun OwnerRegisterScreen(
 
         // Email
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = uiState.email,
+            onValueChange = { viewModel.onEmailChange(it) },
             label = { Text("Email", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -115,8 +123,8 @@ fun OwnerRegisterScreen(
 
         // No Telepon
         OutlinedTextField(
-            value = phone,
-            onValueChange = { phone = it },
+            value = uiState.phone,
+            onValueChange = { viewModel.onPhoneChange(it) },
             label = { Text("No. Telepon", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -127,8 +135,8 @@ fun OwnerRegisterScreen(
 
         // Alamat
         OutlinedTextField(
-            value = address,
-            onValueChange = { address = it },
+            value = uiState.address,
+            onValueChange = { viewModel.onAddressChange(it) },
             label = { Text("Alamat (Opsional)", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -139,8 +147,8 @@ fun OwnerRegisterScreen(
 
         // Password
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = uiState.password,
+            onValueChange = { viewModel.onPasswordChange(it) },
             label = { Text("Password", color = OnSurface) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -152,8 +160,8 @@ fun OwnerRegisterScreen(
 
         // Konfirmasi Password
         OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
+            value = uiState.confirmPassword,
+            onValueChange = { viewModel.onConfirmPasswordChange(it) },
             label = { Text("Konfirmasi Password", color = OnSurface) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -164,9 +172,9 @@ fun OwnerRegisterScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Error Message Display
-        errorMessage?.let { msg ->
+        if (uiState.errorMessage != null) {
             Text(
-                text = msg,
+                text = uiState.errorMessage!!,
                 color = MaterialTheme.colorScheme.error,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -176,19 +184,8 @@ fun OwnerRegisterScreen(
 
         // BUTTON DAFTAR
         Button(
-            onClick = {
-                errorMessage = null
-                when {
-                    businessName.isBlank() -> errorMessage = "Nama usaha wajib diisi"
-                    ownerName.isBlank() -> errorMessage = "Nama pemilik wajib diisi"
-                    email.isBlank() -> errorMessage = "Email wajib diisi"
-                    password.length < 6 -> errorMessage = "Password minimal 6 karakter"
-                    password != confirmPassword -> errorMessage = "Password tidak cocok"
-                    else -> {
-                        onRegister(businessName, ownerName, email, phone, address, password)
-                    }
-                }
-            },
+            onClick = { viewModel.register() },
+            enabled = !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -198,11 +195,15 @@ fun OwnerRegisterScreen(
                 contentColor = OnPrimary
             )
         ) {
-            Text(
-                text = "Daftar sebagai Owner",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (uiState.isLoading) {
+                CircularProgressIndicator(color = OnPrimary, modifier = Modifier.size(24.dp))
+            } else {
+                Text(
+                    text = "Daftar sebagai Owner",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -216,12 +217,11 @@ fun OwnerRegisterScreen(
             )
         }
 
-        // Spacer bawah agar scroll bisa mentok nyaman
         Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
-// Helper function agar coding lebih rapi dan tidak perlu copas warna berkali-kali
+// Helper Colors
 @Composable
 fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedTextColor = OnSurface,

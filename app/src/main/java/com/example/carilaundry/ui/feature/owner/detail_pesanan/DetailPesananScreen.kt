@@ -1,6 +1,5 @@
 package com.example.carilaundry.ui.feature.owner.detail_pesanan
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,179 +12,171 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.OwnerOrderDetail
+import com.example.carilaundry.ui.AppViewModelProvider // Pastikan Import Ini Ada
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-
-// Data class untuk Detail Pesanan Owner (Sama seperti sebelumnya)
-data class OwnerOrderDetail(
-    val id: String,
-    val customerName: String, // Diganti dari laundryName
-    val service: String,
-    val category: String,
-    val duration: String,
-    val weightKg: Int,
-    val notes: String,
-    val pickupMethod: String,
-    val time: String,
-    val address: String,
-    val paymentMethod: String,
-    val subtotalText: String,
-    val deliveryFeeText: String,
-    val totalText: String,
-)
 
 @Composable
 fun DetailPesananScreen(
-    detail: OwnerOrderDetail = sampleOwnerOrder(), // Default value untuk preview
+    // PERBAIKAN DI SINI: Tambahkan factory
+    viewModel: DetailOwnerViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onBack: () -> Unit = {},
     onProcessPickup: (String) -> Unit = {},
     onProcessProgress: (String) -> Unit = {},
     onComplete: (String) -> Unit = {}
 ) {
+    // Ambil state dari ViewModel
+    val uiState by viewModel.uiState.collectAsState()
+
     Scaffold(
-        containerColor = Color(0xFFE0F7FA), // Warna Background sama dengan Customer
+        containerColor = Color(0xFFE0F7FA),
         bottomBar = {
-            // ACTION BUTTONS FOR OWNER
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Tombol 1: Jemput
-                Button(
-                    onClick = { onProcessPickup(detail.id) },
+            val detail = uiState.detail
+            // Tampilkan tombol aksi hanya jika data sudah dimuat (tidak null)
+            if (detail != null) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
-                    shape = RoundedCornerShape(8.dp)
+                        .background(Color.White)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Proses Penjemputan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
+                    // Tombol 1: Jemput
+                    Button(
+                        onClick = { onProcessPickup(detail.id) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Proses Penjemputan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
 
-                // Tombol 2: Proses
-                Button(
-                    onClick = { onProcessProgress(detail.id) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3399FF)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Proses Pengerjaan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                }
+                    // Tombol 2: Proses
+                    Button(
+                        onClick = { onProcessProgress(detail.id) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3399FF)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Proses Pengerjaan", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
 
-                // Tombol 3: Selesai
-                Button(
-                    onClick = { onComplete(detail.id) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Selesai", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    // Tombol 3: Selesai
+                    Button(
+                        onClick = { onComplete(detail.id) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Selesai", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
     ) { padding ->
 
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
 
-            // HEADER
-            OwnerDetailHeader(onBack)
+            // 1. Loading State
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFF3F7EC2)
+                )
+            }
 
-            // INFO PELANGGAN CARD (Mirip LaundryInfoCard Customer)
-            CustomerInfoCard(detail)
+            // 2. Success State
+            val detail = uiState.detail
+            if (detail != null) {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    OwnerDetailHeader(onBack)
 
-            // --- SECTION LAYANAN ---
-            SectionTitle("Detail Layanan")
+                    CustomerInfoCard(detail)
 
-            InfoLabel("Jenis Layanan")
-            InfoValueBox(detail.service)
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            InfoLabel("Kategori Item")
-            InfoValueBox(detail.category)
+                    SectionTitle("Detail Layanan")
+                    InfoLabel("Jenis Layanan")
+                    InfoValueBox(detail.service)
+                    InfoLabel("Kategori Item")
+                    InfoValueBox(detail.category)
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    InfoLabel("Berat")
-                    InfoValueBox("${detail.weightKg} kg")
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    InfoLabel("Durasi")
-                    InfoValueBox(detail.duration)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            InfoLabel("Berat")
+                            InfoValueBox("${detail.weightKg} kg")
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            InfoLabel("Durasi")
+                            InfoValueBox(detail.duration)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    InfoLabel("Catatan Pelanggan")
+                    InfoValueBox(if (detail.notes.isNotEmpty()) detail.notes else "-")
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionTitle("Info Pengambilan")
+                    InfoLabel("Metode")
+                    InfoValueBox(detail.pickupMethod)
+                    InfoLabel("Waktu")
+                    InfoValueBox(detail.time)
+                    InfoLabel("Alamat")
+                    InfoValueBox(detail.address, isMultiLine = true)
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionTitle("Metode Pembayaran")
+                    InfoValueBox(detail.paymentMethod)
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionTitle("Rincian Harga")
+                    PricingSummaryCard(detail)
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            InfoLabel("Catatan Pelanggan")
-            InfoValueBox(if (detail.notes.isNotEmpty()) detail.notes else "-")
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- SECTION PENGAMBILAN ---
-            SectionTitle("Info Pengambilan")
-
-            InfoLabel("Metode")
-            InfoValueBox(detail.pickupMethod)
-
-            InfoLabel("Waktu")
-            InfoValueBox(detail.time)
-
-            InfoLabel("Alamat")
-            InfoValueBox(detail.address, isMultiLine = true)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- SECTION PEMBAYARAN ---
-            SectionTitle("Metode Pembayaran")
-            InfoValueBox(detail.paymentMethod)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // --- SECTION HARGA ---
-            SectionTitle("Rincian Harga")
-            PricingSummaryCard(detail)
-
-            Spacer(modifier = Modifier.height(24.dp))
+            // 3. Error State
+            if (uiState.errorMessage != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error: ${uiState.errorMessage}", color = Color.Red)
+                }
+            }
         }
     }
 }
 
-// ================= KOMPONEN OWNER =================
+// ================= KOMPONEN HELPER (Tidak Berubah) =================
+// (Salin ulang komponen helper dari kode sebelumnya: OwnerDetailHeader, CustomerInfoCard, dll)
+// Agar kode tidak terlalu panjang, pastikan komponen-komponen helper tersebut tetap ada di bawah sini.
 
 @Composable
 fun OwnerDetailHeader(onBack: () -> Unit) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
     ) {
         Icon(
             painter = painterResource(id = R.drawable.baseline_arrow_back_24),
             contentDescription = "Back",
             tint = Color(0xFF0D1B2A),
-            modifier = Modifier
-                .size(24.dp)
-                .align(Alignment.CenterStart)
-                .clickable { onBack() }
+            modifier = Modifier.size(24.dp).align(Alignment.CenterStart).clickable { onBack() }
         )
         Text(
             "Detail Pesanan",
@@ -201,53 +192,27 @@ fun OwnerDetailHeader(onBack: () -> Unit) {
 fun CustomerInfoCard(detail: OwnerOrderDetail) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
+        modifier = Modifier.fillMaxWidth().height(100.dp),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row {
-            // Avatar Placeholder (Huruf Depan Nama)
             Box(
-                modifier = Modifier
-                    .width(90.dp)
-                    .fillMaxHeight()
-                    .background(Color.White),
+                modifier = Modifier.width(90.dp).fillMaxHeight().background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = detail.customerName.take(1).uppercase(),
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF3F7EC2)
-                )
+                Text(text = detail.customerName.take(1).uppercase(), fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3F7EC2))
             }
-
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(Color(0xFF3F7EC2))
-                    .padding(12.dp),
+                modifier = Modifier.weight(1f).fillMaxHeight().background(Color(0xFF3F7EC2)).padding(12.dp),
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = detail.customerName,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-                Text(
-                    text = "Pelanggan",
-                    color = Color(0xFFE0E0E0),
-                    fontSize = 12.sp
-                )
+                Text(text = detail.customerName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(text = "Pelanggan", color = Color(0xFFE0E0E0), fontSize = 12.sp)
             }
         }
     }
 }
 
-// Read-only info box pengganti text field input
 @Composable
 fun InfoValueBox(text: String, isMultiLine: Boolean = false) {
     Box(
@@ -255,15 +220,11 @@ fun InfoValueBox(text: String, isMultiLine: Boolean = false) {
             .fillMaxWidth()
             .height(if (isMultiLine) 80.dp else 50.dp)
             .background(Color.White, RoundedCornerShape(8.dp))
-            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp)) // Border abu-abu
+            .border(1.dp, Color(0xFFB0BEC5), RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = if (isMultiLine) Alignment.TopStart else Alignment.CenterStart
     ) {
-        Text(
-            text = text,
-            fontSize = 14.sp,
-            color = Color.Black
-        )
+        Text(text = text, fontSize = 14.sp, color = Color.Black)
     }
     Spacer(modifier = Modifier.height(12.dp))
 }
@@ -281,7 +242,6 @@ fun PricingSummaryCard(detail: OwnerOrderDetail) {
             Spacer(modifier = Modifier.height(8.dp))
             PriceRow("Biaya Antar", detail.deliveryFeeText)
             Spacer(modifier = Modifier.height(8.dp))
-            Divider()
             Spacer(modifier = Modifier.height(8.dp))
             PriceRow("Total", detail.totalText, bold = true)
         }
@@ -298,42 +258,13 @@ fun PriceRow(label: String, value: String, bold: Boolean = false) {
 
 @Composable
 fun SectionTitle(text: String) {
-    Text(
-        text,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color(0xFF0D1B2A),
-        modifier = Modifier.padding(bottom = 8.dp)
-    )
+    Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0D1B2A), modifier = Modifier.padding(bottom = 8.dp))
 }
 
 @Composable
 fun InfoLabel(text: String) {
-    Text(
-        text,
-        fontSize = 12.sp,
-        color = Color(0xFF546E7A),
-        modifier = Modifier.padding(bottom = 4.dp)
-    )
+    Text(text, fontSize = 12.sp, color = Color(0xFF546E7A), modifier = Modifier.padding(bottom = 4.dp))
 }
-
-// Sample Data Function
-fun sampleOwnerOrder() = OwnerOrderDetail(
-    id = "ORD-001",
-    customerName = "Mas Anel",
-    service = "Cuci dan Lipat",
-    category = "Baju dan Celana",
-    duration = "3 Hari",
-    weightKg = 5,
-    notes = "Jangan dicampur warna putih",
-    pickupMethod = "Jemput",
-    time = "05/11/2025",
-    address = "Jl. Soekarno Hatta No. 15, Kampungin",
-    paymentMethod = "Bayar Tunai",
-    subtotalText = "Rp 40.000",
-    deliveryFeeText = "Gratis",
-    totalText = "Rp 40.000"
-)
 
 @Preview(showBackground = true)
 @Composable

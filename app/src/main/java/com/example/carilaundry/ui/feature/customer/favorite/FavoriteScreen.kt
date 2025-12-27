@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,29 +20,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel // Pastikan import ini ada
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.FavoriteLaundry
 import com.example.carilaundry.ui.theme.CariLaundryTheme
+import com.example.carilaundry.ui.theme.Primary // Gunakan theme color jika ada
 
-// ================= DATA MODEL =================
-data class FavoriteLaundry(
-    val id: String,
-    val name: String,
-    val address: String,
-    val phone: String,
-    val imageRes: Int
-)
-
-// ================= SCREEN =================
 @Composable
 fun CustomerFavoriteScreen(
+    // Kita inject ViewModel di sini (bisa pakai viewModel() default karena belum ada parameter constructor)
+    viewModel: FavoriteViewModel = viewModel(),
     onBack: () -> Unit = {},
     onItemClick: (String) -> Unit = {}
 ) {
-    val favoriteList = listOf(
-        FavoriteLaundry("1", "Laundry Wertwer", "Jalan Senopati No. 3", "+62 813-2707-4781", R.drawable.icon),
-        FavoriteLaundry("2", "Laundry Bersih", "Jalan Mawar No. 10", "+62 812-3333-4444", R.drawable.icon),
-        FavoriteLaundry("3", "Cuci Kilat", "Jalan Melati No. 5", "+62 811-5555-6666", R.drawable.icon)
-    )
+    // Ambil data dari ViewModel
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = Color(0xFFE0F7FA)
@@ -59,20 +53,40 @@ fun CustomerFavoriteScreen(
                 text = "Favorit",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+                color = Color(0xFF0D1B2A),
                 modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
             )
 
+            // KONTEN UTAMA (Loading / List / Empty)
+            Box(modifier = Modifier.fillMaxSize()) {
 
-            // LIST
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(favoriteList) { laundry ->
-                    FavoriteItemCard(
-                        laundry = laundry,
-                        onClick = { onItemClick(laundry.id) }
+                // 1. Jika Loading -> Tampilkan Spinner
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color(0xFF3F7EC2)
+                    )
+                }
+                // 2. Jika Tidak Loading dan List Ada -> Tampilkan List
+                else if (uiState.favoriteList.isNotEmpty()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.favoriteList) { laundry ->
+                            FavoriteItemCard(
+                                laundry = laundry,
+                                onClick = { onItemClick(laundry.id) }
+                            )
+                        }
+                    }
+                }
+                // 3. Jika Kosong -> Tampilkan Pesan Kosong (Opsional)
+                else {
+                    Text(
+                        text = "Belum ada favorit",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.Gray
                     )
                 }
             }
@@ -80,7 +94,7 @@ fun CustomerFavoriteScreen(
     }
 }
 
-// ================= HEADER =================
+// ================= HEADER (TETAP SAMA) =================
 @Composable
 fun FavoriteHeader(onBack: () -> Unit) {
     Row(
@@ -90,9 +104,9 @@ fun FavoriteHeader(onBack: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            painter = painterResource(id = R.drawable.baseline_arrow_back_24),
+            painter = painterResource(id = R.drawable.baseline_arrow_back_24), // Pastikan icon ada
             contentDescription = "Back",
-            tint = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            tint = Color(0xFF0D1B2A),
             modifier = Modifier
                 .size(24.dp)
                 .clickable { onBack() }
@@ -110,14 +124,14 @@ fun FavoriteHeader(onBack: () -> Unit) {
             text = "CariLaundry",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            color = Color(0xFF0D1B2A),
             modifier = Modifier.padding(start = 12.dp)
         )
     }
 }
 
 
-// ================= ITEM CARD =================
+// ================= ITEM CARD (TETAP SAMA) =================
 @Composable
 fun FavoriteItemCard(
     laundry: FavoriteLaundry,
@@ -146,7 +160,7 @@ fun FavoriteItemCard(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .background(Color(0xFF3F7EC2))
+                    .background(Color(0xFF3F7EC2)) // Warna Biru Card
                     .padding(12.dp)
             ) {
                 Row(
@@ -194,14 +208,5 @@ fun FavoriteItemCard(
                 }
             }
         }
-    }
-}
-
-// ================= PREVIEW =================
-@Preview(showBackground = true)
-@Composable
-fun FavoritePreview() {
-    CariLaundryTheme {
-        CustomerFavoriteScreen()
     }
 }

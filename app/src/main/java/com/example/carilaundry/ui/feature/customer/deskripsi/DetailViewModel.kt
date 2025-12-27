@@ -1,31 +1,25 @@
 package com.example.carilaundry.ui.feature.customer.deskripsi
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.carilaundry.domain.model.Laundry
 import com.example.carilaundry.domain.repository.LaundryRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-sealed interface DetailUiState {
-    data class Success(val laundry: Laundry) : DetailUiState
-    object Error : DetailUiState
-    object Loading : DetailUiState
-}
-
 class DetailViewModel(
-    savedStateHandle: SavedStateHandle, // Ini untuk menangkap ID dari Navigasi
+    savedStateHandle: SavedStateHandle,
     private val repository: LaundryRepository
 ) : ViewModel() {
 
-    // Ambil ID yang dikirim lewat navigasi (key-nya nanti kita namakan "laundryId")
+    // Mengambil ID dari argumen navigasi (pastikan di AppNavigation namanya "laundryId")
     private val laundryId: String = checkNotNull(savedStateHandle["laundryId"])
 
-    var detailUiState: DetailUiState by mutableStateOf(DetailUiState.Loading)
-        private set
+    private val _uiState = MutableStateFlow(DetailUiState())
+    val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     init {
         getLaundryDetail()
@@ -33,13 +27,21 @@ class DetailViewModel(
 
     private fun getLaundryDetail() {
         viewModelScope.launch {
-            // Ambil data dari Repository berdasarkan ID
-            val laundry = repository.getLaundryById(laundryId)
+            // 1. Set Loading
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            if (laundry != null) {
-                detailUiState = DetailUiState.Success(laundry)
+            // 2. Ambil data dari Repository
+            val data = repository.getLaundryById(laundryId)
+
+            // 3. Update UI
+            if (data != null) {
+                _uiState.update {
+                    it.copy(isLoading = false, laundry = data)
+                }
             } else {
-                detailUiState = DetailUiState.Error
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = "Data laundry tidak ditemukan")
+                }
             }
         }
     }

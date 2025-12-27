@@ -9,50 +9,40 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.domain.model.CustomerOrder
 import com.example.carilaundry.ui.theme.CariLaundryTheme
-import androidx.compose.ui.res.painterResource
 import com.example.carilaundry.ui.theme.OnBackground
-import com.example.carilaundry.ui.theme.OnPrimary
-
-// ================= DATA =================
-data class CustomerOrder(
-    val id: String,
-    val service: String,
-    val weight: String,
-    val total: String,
-    val status: String,
-    val estimation: String
-)
 
 // ================= SCREEN =================
 @Composable
 fun CustomerOrdersScreen(
-    orders: List<CustomerOrder> = remember {
-        listOf(
-            CustomerOrder("1", "Cuci & Lipat", "5 kg", "Rp 40.000", "Proses Pengerjaan", "Besok, 14:00"),
-            CustomerOrder("2", "Cuci Kering", "2 pcs", "Rp 75.000", "Menunggu Kurir", "Hari ini, 17:00"),
-            CustomerOrder("3", "Setrika Saja", "3 kg", "Rp 15.000", "Selesai", "Kemarin")
-        )
-    },
+    // Inject ViewModel
+    viewModel: CustomerOrdersViewModel = viewModel(),
     onBack: () -> Unit = {},
     onOpenOrder: (String) -> Unit = {}
 ) {
+    // Ambil state
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFE0F7FA))
     ) {
 
-        // 🔷 HEADER (SAMA SEPERTI PROFILE)
+        // 🔷 HEADER
         OrdersHeader(onBack)
 
         // 🔷 TITLE
@@ -64,21 +54,43 @@ fun CustomerOrdersScreen(
             modifier = Modifier.padding(start = 20.dp, bottom = 16.dp)
         )
 
-        // 🔷 LIST ORDER
-        LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(orders) { order ->
-                OrderCard(order) {
-                    onOpenOrder(order.id)
+        // 🔷 CONTENT (Loading / List / Empty)
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            // 1. Loading
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color(0xFF3F7EC2)
+                )
+            }
+            // 2. List Data
+            else if (uiState.orders.isNotEmpty()) {
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.orders) { order ->
+                        OrderCard(order) {
+                            onOpenOrder(order.id)
+                        }
+                    }
                 }
+            }
+            // 3. Empty State
+            else {
+                Text(
+                    text = "Belum ada pesanan",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = Color.Gray
+                )
             }
         }
     }
 }
 
-// ================= HEADER =================
+// ================= KOMPONEN PENDUKUNG (TETAP SAMA) =================
+
 @Composable
 fun OrdersHeader(onBack: () -> Unit) {
     Row(
@@ -90,7 +102,7 @@ fun OrdersHeader(onBack: () -> Unit) {
         Icon(
             painter = painterResource(id = R.drawable.baseline_arrow_back_24),
             contentDescription = "Back",
-            tint = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            tint = Color(0xFF0D1B2A),
             modifier = Modifier
                 .size(24.dp)
                 .clickable { onBack() }
@@ -108,13 +120,12 @@ fun OrdersHeader(onBack: () -> Unit) {
             text = "CariLaundry",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0D1B2A), // ⬅️ TAMBAH
+            color = Color(0xFF0D1B2A),
             modifier = Modifier.padding(start = 12.dp)
         )
     }
 }
 
-// ================= ORDER CARD =================
 @Composable
 fun OrderCard(order: CustomerOrder, onClick: () -> Unit) {
     Card(
@@ -142,6 +153,7 @@ fun OrderCard(order: CustomerOrder, onClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Status Badge
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,19 +179,18 @@ fun OrderCard(order: CustomerOrder, onClick: () -> Unit) {
     }
 }
 
-// ================= HELPER =================
 @Composable
 fun OrderRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = OnBackground)
-        Text(text = value, fontWeight = FontWeight.Bold, color = OnBackground)
+        // Menggunakan Text Color default / OnBackground agar terlihat
+        Text(text = label, color = Color.Black)
+        Text(text = value, fontWeight = FontWeight.Bold, color = Color.Black)
     }
 }
 
-// ================= PREVIEW =================
 @Preview(showBackground = true)
 @Composable
 fun OrdersPreview() {

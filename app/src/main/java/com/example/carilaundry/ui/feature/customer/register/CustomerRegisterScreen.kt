@@ -1,5 +1,6 @@
 package com.example.carilaundry.ui.feature.customer.register
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,23 +9,36 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
 import com.example.carilaundry.ui.theme.*
 
 @Composable
 fun CustomerRegisterScreen(
-    onRegister: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
+    // Inject ViewModel
+    viewModel: CustomerRegisterViewModel = viewModel(),
+    // Callback ketika register sukses (biasanya diarahkan ke Login atau Home)
+    onRegisterSuccess: () -> Unit = {},
     onLoginClicked: () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // Efek Samping: Navigasi jika sukses
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            Toast.makeText(context, "Registrasi Berhasil! Silakan Masuk.", Toast.LENGTH_SHORT).show()
+            onRegisterSuccess()
+            viewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -65,11 +79,12 @@ fun CustomerRegisterScreen(
 
         // NAMA
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
+            value = uiState.name,
+            onValueChange = { viewModel.onNameChange(it) },
             label = { Text("Nama", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            isError = uiState.errorMessage != null,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = OnSurface,
                 unfocusedTextColor = OnSurface,
@@ -85,11 +100,12 @@ fun CustomerRegisterScreen(
 
         // EMAIL
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
+            value = uiState.email,
+            onValueChange = { viewModel.onEmailChange(it) },
             label = { Text("Email", color = OnSurface) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            isError = uiState.errorMessage != null,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = OnSurface,
                 unfocusedTextColor = OnSurface,
@@ -105,12 +121,13 @@ fun CustomerRegisterScreen(
 
         // PASSWORD
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = uiState.password,
+            onValueChange = { viewModel.onPasswordChange(it) },
             label = { Text("Password", color = OnSurface) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
+            isError = uiState.errorMessage != null,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = OnSurface,
                 unfocusedTextColor = OnSurface,
@@ -122,11 +139,22 @@ fun CustomerRegisterScreen(
             )
         )
 
+        // Error Message Text
+        if (uiState.errorMessage != null) {
+            Text(
+                text = uiState.errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
+            )
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         // BUTTON DAFTAR
         Button(
-            onClick = { onRegister(name, email, password) },
+            onClick = { viewModel.register() },
+            enabled = !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -136,11 +164,18 @@ fun CustomerRegisterScreen(
                 contentColor = OnPrimary
             )
         ) {
-            Text(
-                text = "Daftar",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    color = OnPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                Text(
+                    text = "Daftar",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))

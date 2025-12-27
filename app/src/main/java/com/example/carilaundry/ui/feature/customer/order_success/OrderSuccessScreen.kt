@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,15 +20,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.carilaundry.R
+import com.example.carilaundry.ui.AppViewModelProvider
+import com.example.carilaundry.ui.feature.customer.register.CustomerRegisterScreen
+import com.example.carilaundry.ui.theme.CariLaundryTheme
 
 @Composable
 fun OrderSuccessScreen(
-    laundryName: String = "Laundry Wertwer",
-    address: String = "Jalan Senopati No. 3, Kampungin",
-    onBack: () -> Unit = {}, // Ditambahkan biar sesuai NavGraph
-    onOk: () -> Unit = {}    // Diubah dari onNavigateHome agar sesuai NavGraph
+    // Inject ViewModel
+    viewModel: OrderSuccessViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onOk: () -> Unit = {}
 ) {
+    // Ambil State
+    val uiState by viewModel.uiState.collectAsState()
+
     val BackgroundColor = Color(0xFFE0F7FA)
     val PrimaryBlue = Color(0xFF3F7EC2)
     val DarkBlueText = Color(0xFF1A237E)
@@ -67,9 +75,9 @@ fun OrderSuccessScreen(
             )
         }
 
-        /* ===== LAUNDRY NAME ===== */
+        /* ===== LAUNDRY NAME (DARI STATE) ===== */
         Text(
-            text = laundryName,
+            text = uiState.laundryName, // Menggunakan data dinamis
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = PrimaryBlue,
@@ -88,8 +96,9 @@ fun OrderSuccessScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
+                /* ===== ADDRESS (DARI STATE) ===== */
                 Text(
-                    text = address,
+                    text = uiState.laundryAddress, // Menggunakan data dinamis
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = PrimaryBlue,
@@ -115,7 +124,7 @@ fun OrderSuccessScreen(
                 )
 
                 Button(
-                    onClick = onOk, // Panggil onOk di sini
+                    onClick = onOk,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -136,6 +145,8 @@ fun OrderSuccessScreen(
 
 @Preview(showBackground = true)
 @Composable
-fun OrderSuccessPreview() {
-    OrderSuccessScreen()
+fun CustomerRegisterPreview() {
+    CariLaundryTheme {
+        OrderSuccessScreen()
+    }
 }
