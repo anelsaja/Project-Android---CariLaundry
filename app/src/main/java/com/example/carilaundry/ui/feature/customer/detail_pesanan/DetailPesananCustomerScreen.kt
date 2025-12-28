@@ -6,6 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+// ... (lanjutkan dengan import lainnya yang sudah ada di bawah)
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +24,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.carilaundry.R
 import com.example.carilaundry.domain.model.Laundry
 import com.example.carilaundry.ui.AppViewModelProvider
-import com.example.carilaundry.ui.theme.CariLaundryTheme
 import java.text.NumberFormat
 import java.util.Locale
 import androidx.navigation.NavController
@@ -43,13 +45,12 @@ fun DetailPesananCustomerScreen(
     laundryId: String? = null, // Parameter ini tidak dipakai lagi karena sudah di-handle ViewModel
     viewModel: OrderViewModel = viewModel(factory = AppViewModelProvider.Factory), // Inject ViewModel
     onBack: () -> Unit = {},
-    onPlaceOrder: (Int) -> Unit = {},
-    onSubmitOrder: () -> Unit = {} // Nanti ini akan memicu simpan ke database
+    onSubmitOrder: () -> Unit = {} // Callback setelah sukses submit
 ) {
     // Ambil State dari ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // State Lokal untuk Form (Data input user)
+    // State Lokal untuk Form (Input User)
     val serviceOptions = listOf("Cuci & Lipat", "Cuci Kering", "Setrika Saja")
     var selectedService by remember { mutableStateOf(serviceOptions[0]) }
     var itemCategory by remember { mutableStateOf("") }
@@ -87,10 +88,27 @@ fun DetailPesananCustomerScreen(
     Scaffold(
         containerColor = Color(0xFFE0F7FA),
         bottomBar = {
-            // Tombol Pesan hanya aktif jika state Sukses
+            // Tombol Pesan hanya aktif jika data laundry sudah berhasil dimuat (State Success)
             if (uiState is OrderUiState.Success) {
                 Button(
-                    onClick = onSubmitOrder,
+                    onClick = {
+                        // PANGGIL FUNGSI INI AGAR DATA MASUK KE FIREBASE
+                        viewModel.submitOrder(
+                            serviceType = selectedService,
+                            notes = notes,
+                            pickupDate = date,
+                            deliveryAddress = address,
+                            paymentMethod = payment,
+                            onSuccess = {
+                                // Jika sukses masuk database, baru pindah halaman
+                                onSubmitOrder()
+                            },
+                            onError = { errorMessage ->
+                                // Tampilkan error di Logcat jika gagal
+                                println("Gagal mengirim pesanan: $errorMessage")
+                            }
+                        )
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -107,13 +125,27 @@ fun DetailPesananCustomerScreen(
         // Handle Status UI (Loading / Success / Error)
         when (val state = uiState) {
             is OrderUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(color = Color(0xFF3F7EC2))
                 }
             }
             is OrderUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("Gagal memuat data laundry: ${state.message}", color = Color.Red)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Gagal memuat data: ${state.message}",
+                        color = Color.Red,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
             is OrderUiState.Success -> {
@@ -178,18 +210,34 @@ fun DetailPesananCustomerScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
                     InputLabel("Catatan")
-                    CustomTextField(notes, { notes = it }, "Catatan tambahan (Opsional)", false, 80.dp)
+                    CustomTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        placeholder = "Catatan tambahan (Opsional)",
+                        singleLine = false,
+                        height = 80.dp
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                     SectionTitle("Pengambilan & Pengantaran")
 
                     InputLabel("Tanggal")
-                    CustomTextField(date, { date = it }, "DD/MM/YYYY")
+                    CustomTextField(
+                        value = date,
+                        onValueChange = { date = it },
+                        placeholder = "DD/MM/YYYY"
+                    )
 
                     Spacer(modifier = Modifier.height(12.dp))
 
                     InputLabel("Alamat")
-                    CustomTextField(address, { address = it }, "Alamat lengkap pengiriman", false, 80.dp)
+                    CustomTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        placeholder = "Alamat lengkap pengiriman",
+                        singleLine = false,
+                        height = 80.dp
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                     SectionTitle("Metode Pembayaran")
@@ -214,7 +262,7 @@ fun DetailPesananCustomerScreen(
     }
 }
 
-// ================= KOMPONEN =================
+// ================= KOMPONEN UI =================
 
 @Composable
 fun OrderHeader(onBack: () -> Unit) {
@@ -242,7 +290,6 @@ fun OrderHeader(onBack: () -> Unit) {
     }
 }
 
-// Update Info Card agar menerima Data Laundry Asli
 @Composable
 fun LaundryInfoCard(laundry: Laundry) {
     Card(
@@ -252,24 +299,28 @@ fun LaundryInfoCard(laundry: Laundry) {
             .height(100.dp)
     ) {
         Row {
+            // Gambar Laundry
             Image(
-                painter = painterResource(id = laundry.imageRes), // Gambar dinamis
+                painter = painterResource(id = laundry.imageRes),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .width(90.dp)
                     .fillMaxHeight()
             )
+            // Detail Laundry
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .background(Color(0xFF3F7EC2))
                     .padding(12.dp)
             ) {
-                Text(laundry.name, color = Color.White, fontWeight = FontWeight.Bold) // Nama dinamis
-                Text(laundry.address, color = Color(0xFFE0E0E0), fontSize = 12.sp, maxLines = 1) // Alamat dinamis
-                // Jika ada phone di model laundry, gunakan itu.
-                Text("+62 812-xxxx-xxxx", color = Color(0xFFE0E0E0), fontSize = 12.sp)
+                Text(laundry.name, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(laundry.address, color = Color(0xFFE0E0E0), fontSize = 12.sp, maxLines = 1)
+
+                // Jika model Laundry punya field phone, tampilkan. Jika tidak, pakai placeholder.
+                // Text(laundry.phone, color = Color(0xFFE0E0E0), fontSize = 12.sp)
+                Text("Hubungi Penjual", color = Color(0xFFE0E0E0), fontSize = 12.sp)
             }
         }
     }
@@ -282,7 +333,7 @@ fun CustomTextField(
     placeholder: String,
     singleLine: Boolean = true,
     height: Dp = 50.dp,
-    keyboardType: KeyboardType = KeyboardType.Text // Tambahan tipe keyboard
+    keyboardType: KeyboardType = KeyboardType.Text
 ) {
     OutlinedTextField(
         value = value,
@@ -294,7 +345,7 @@ fun CustomTextField(
                 color = Color(0xFF616161)
             )
         },
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType), // Set Keyboard
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier
             .fillMaxWidth()
             .height(height)
@@ -396,7 +447,6 @@ fun PaymentOption(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-// Update Pricing Card untuk menerima data dinamis
 @Composable
 fun PricingSummaryCard(
     weight: String,
@@ -417,7 +467,7 @@ fun PricingSummaryCard(
             PriceRow("Subtotal ($berat kg)", priceString)
             PriceRow("Biaya Antar", "Gratis") // Bisa dibuat dinamis nanti
             Divider(color = Color.LightGray, thickness = 0.5.dp, modifier = Modifier.padding(vertical = 8.dp))
-            PriceRow("Total", priceString, true)
+            PriceRow("Total", priceString, bold = true)
         }
     }
 }
@@ -445,8 +495,8 @@ fun InputLabel(text: String) {
     Text(
         text,
         fontSize = 12.sp,
-        fontWeight = FontWeight.Medium,
-        color = Color(0xFF4A4A4A),
-        modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
+        fontWeight = FontWeight.Bold,
+        color = Color(0xFF0D1B2A),
+        modifier = Modifier.padding(bottom = 4.dp)
     )
 }

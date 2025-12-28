@@ -6,5 +6,6 @@ data class OwnerOrder(
     val address: String,
     val service: String,
     val weightEstimate: String,
-    val priceText: String
+    val priceText: String,
+    val status: String // <--- TAMBAHKAN BARIS INI
 )

@@ -23,27 +23,28 @@ object AppViewModelProvider {
 
         // Initializer untuk HomeViewModel
         initializer {
-            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
-            HomeViewModel(application.container.getLaundryListUseCase)
+//            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
+            HomeViewModel()
         }
 
         // Initializer untuk DetailViewModel (Deskripsi Laundry Customer)
         initializer {
-            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
             DetailViewModel(
-                this.createSavedStateHandle(),
-                application.container.laundryRepository
+                savedStateHandle = createSavedStateHandle()
+                // HAPUS parameter repository, cukup savedStateHandle saja
             )
         }
 
+
+        // Initializer untuk OrderViewModel (Form Pemesanan Customer)
         // Initializer untuk OrderViewModel (Form Pemesanan Customer)
         initializer {
-            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
+            // Kita tidak butuh variabel 'application' lagi
             OrderViewModel(
-                this.createSavedStateHandle(),
-                application.container.laundryRepository
+                savedStateHandle = createSavedStateHandle()
             )
         }
+
         
         // Initializer untuk OrderSuccessViewModel
         initializer {
