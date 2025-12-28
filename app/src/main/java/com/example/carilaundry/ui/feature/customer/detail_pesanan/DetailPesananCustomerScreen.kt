@@ -62,11 +62,22 @@ fun DetailPesananCustomerScreen(
             if (uiState is OrderUiState.Success) {
                 Button(
                     onClick = {
-                        // Di sini logika submit order ke ViewModel seharusnya dipanggil
-                        // viewModel.submitOrder(...)
-
-                        // Untuk sekarang panggil callback navigasi
-                        onSubmitOrder()
+                        // PANGGIL FUNGSI INI AGAR DATA MASUK KE FIREBASE
+                        viewModel.submitOrder(
+                            serviceType = selectedService,
+                            notes = notes,
+                            pickupDate = date,
+                            deliveryAddress = address,
+                            paymentMethod = payment,
+                            onSuccess = {
+                                // Jika sukses masuk database, baru pindah halaman
+                                onSubmitOrder()
+                            },
+                            onError = { errorMessage ->
+                                // Tampilkan error di Logcat jika gagal
+                                println("Gagal mengirim pesanan: $errorMessage")
+                            }
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
