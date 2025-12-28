@@ -32,10 +32,14 @@ import com.example.carilaundry.ui.AppViewModelProvider
 import com.example.carilaundry.ui.theme.CariLaundryTheme
 import java.text.NumberFormat
 import java.util.Locale
+import androidx.navigation.NavController
+import androidx.compose.runtime.livedata.observeAsState // PENTING
+import androidx.compose.runtime.LaunchedEffect
 
 // ================= SCREEN =================
 @Composable
 fun DetailPesananCustomerScreen(
+    navController: NavController, // Tambahkan parameter ini
     laundryId: String? = null, // Parameter ini tidak dipakai lagi karena sudah di-handle ViewModel
     viewModel: OrderViewModel = viewModel(factory = AppViewModelProvider.Factory), // Inject ViewModel
     onBack: () -> Unit = {},
@@ -54,6 +58,32 @@ fun DetailPesananCustomerScreen(
     var address by remember { mutableStateOf("") }
     var payment by remember { mutableStateOf("Tunai") }
 
+// ================== PERBAIKAN LOGIKA SCAN ==================
+    // Kita ambil LiveData dari BackStackEntry saat ini
+    val currentBackStackEntry = navController.currentBackStackEntry
+
+    // observeAsState mengubah LiveData menjadi State Compose
+    // Kita beri nilai awal null
+    val scanResult = currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Int>("scan_result")
+        ?.observeAsState(initial = null)
+
+    // Pantau perubahan hasil scan
+    LaunchedEffect(scanResult?.value) {
+        // Ambil nilainya
+        val count = scanResult?.value
+
+        if (count != null) {
+            // Logika konversi (misal 1 item = 0.5 kg)
+            val estimatedWeight = count * 0.5
+            viewModel.onWeightChanged(estimatedWeight.toString())
+
+            // PENTING: Hapus data dari savedStateHandle agar tidak tereksekusi
+            // lagi saat rotasi layar atau back navigation
+            currentBackStackEntry.savedStateHandle.remove<Int>("scan_result")
+        }
+    }
     Scaffold(
         containerColor = Color(0xFFE0F7FA),
         bottomBar = {
@@ -134,7 +164,7 @@ fun DetailPesananCustomerScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
-                            onClick = { /* TODO: Fitur Scan */ },
+                            onClick = { navController.navigate("customer/scan") },
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(top = 20.dp)
