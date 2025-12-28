@@ -40,6 +40,7 @@ import com.example.carilaundry.ui.feature.customer.order_success.OrderSuccessScr
 import com.example.carilaundry.ui.feature.customer.favorite.CustomerFavoriteScreen
 import com.example.carilaundry.ui.feature.customer.notifikasi.NotifikasiCustomerScreen
 import com.example.carilaundry.ui.feature.customer.profil.ProfilScreen
+import com.example.carilaundry.ui.feature.customer.scan.ScanScreen
 
 // --- OWNER IMPORTS ---
 import com.example.carilaundry.ui.feature.owner.login.OwnerLoginScreen
@@ -200,9 +201,15 @@ fun NavGraph() {
                 route = "customer/detail_pesanan/{laundryId}",
                 arguments = listOf(navArgument("laundryId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val laundryId = backStackEntry.arguments?.getString("laundryId")
+
+                // Ambil ID untuk diteruskan ke halaman sukses nanti
+                val laundryId = backStackEntry.arguments?.getString("laundryId") ?: ""
 
                 DetailPesananCustomerScreen(
+                    // --- PERBAIKAN DI SINI ---
+                    // Tambahkan navController agar bisa menerima hasil Scan
+                    navController = navController,
+
                     onBack = { navController.popBackStack() },
                     onSubmitOrder = {
                         navController.navigate("customer/order_success/$laundryId")
@@ -224,6 +231,20 @@ fun NavGraph() {
                 CustomerFavoriteScreen(
                     onBack = { navController.popBackStack() },
                     onItemClick = { id -> navController.navigate("customer/deskripsi/$id") }
+                )
+            }
+
+            composable("customer/scan") {
+                ScanScreen(
+                    onBack = { navController.popBackStack() },
+                    onResult = { count ->
+                        // Simpan hasil ke savedStateHandle milik halaman SEBELUMNYA
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("scan_result", count)
+
+                        navController.popBackStack()
+                    }
                 )
             }
 

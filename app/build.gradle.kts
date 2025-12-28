@@ -69,4 +69,18 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
+    // 1. CameraX (Untuk membuka kamera)
+    val camerax_version = "1.3.1"
+    implementation("androidx.camera:camera-core:${camerax_version}")
+    implementation("androidx.camera:camera-camera2:${camerax_version}")
+    implementation("androidx.camera:camera-lifecycle:${camerax_version}")
+    implementation("androidx.camera:camera-view:${camerax_version}")
+
+    // 2. ML Kit Object Detection (Untuk mendeteksi benda)
+    implementation("com.google.mlkit:object-detection:17.0.0")
+
+    // 3. Permission (Opsional tapi mempermudah)
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.0")
 }
