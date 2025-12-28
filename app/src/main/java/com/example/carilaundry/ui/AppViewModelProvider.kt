@@ -9,6 +9,14 @@ import com.example.carilaundry.CariLaundryApplication
 import com.example.carilaundry.ui.feature.customer.deskripsi.DetailViewModel
 import com.example.carilaundry.ui.feature.customer.detail_pesanan.OrderViewModel
 import com.example.carilaundry.ui.feature.customer.home.HomeViewModel
+import com.example.carilaundry.ui.feature.owner.detail_pesanan.DetailOwnerViewModel
+import com.example.carilaundry.ui.feature.customer.orders.CustomerOrdersViewModel
+import com.example.carilaundry.ui.feature.owner.pesanan.OwnerOrdersViewModel
+import com.example.carilaundry.ui.feature.owner.profil.OwnerProfileViewModel
+import com.example.carilaundry.ui.feature.customer.order_success.OrderSuccessViewModel
+import com.example.carilaundry.ui.feature.customer.notifikasi.NotificationViewModel
+// Perbaiki import untuk Owner Notification ViewModel
+import com.example.carilaundry.ui.feature.owner.notifikasi.OwnerNotificationViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {
@@ -16,21 +24,19 @@ object AppViewModelProvider {
         // Initializer untuk HomeViewModel
         initializer {
             val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
-
-            // Kita ambil useCase yang sudah disiapkan di AppContainer
             HomeViewModel(application.container.getLaundryListUseCase)
         }
 
-        // TAMBAHKAN INI: Initializer untuk DetailViewModel
+        // Initializer untuk DetailViewModel (Deskripsi Laundry Customer)
         initializer {
             val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
-
             DetailViewModel(
-                this.createSavedStateHandle(), // PENTING: Untuk menangkap Nav Arguments
-                application.container.laundryRepository // Kita akses repo langsung (tanpa UseCase khusus gpp untuk detail sederhana)
+                this.createSavedStateHandle(),
+                application.container.laundryRepository
             )
         }
 
+        // Initializer untuk OrderViewModel (Form Pemesanan Customer)
         initializer {
             val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
             OrderViewModel(
@@ -38,7 +44,44 @@ object AppViewModelProvider {
                 application.container.laundryRepository
             )
         }
+        
+        // Initializer untuk OrderSuccessViewModel
+        initializer {
+             OrderSuccessViewModel(this.createSavedStateHandle())
+        }
+        
+        // Initializer untuk CustomerOrdersViewModel (Daftar Pesanan Customer)
+        initializer {
+            CustomerOrdersViewModel()
+        }
+        
+        // Initializer untuk NotificationViewModel (Customer)
+        initializer {
+            NotificationViewModel()
+        }
 
-        // Nanti kalau ada ViewModel lain (misal DetailViewModel), tambahkan di bawah sini
+        // --- OWNER VIEWMODELS ---
+
+        // Initializer untuk OwnerOrdersViewModel (Daftar Pesanan Masuk Owner)
+        initializer {
+            OwnerOrdersViewModel()
+        }
+
+        // Initializer untuk DetailOwnerViewModel (Detail Pesanan Owner)
+        initializer {
+            DetailOwnerViewModel(
+                this.createSavedStateHandle()
+            )
+        }
+
+        // Initializer untuk OwnerProfileViewModel
+        initializer {
+            OwnerProfileViewModel()
+        }
+        
+        // Initializer untuk OwnerNotificationViewModel (Nama yang benar)
+        initializer {
+            OwnerNotificationViewModel()
+        }
     }
 }

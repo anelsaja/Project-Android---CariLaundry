@@ -20,40 +20,45 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.carilaundry.R
 import com.example.carilaundry.domain.model.Laundry
 import com.example.carilaundry.ui.AppViewModelProvider
+import com.example.carilaundry.ui.theme.CariLaundryTheme
 import java.text.NumberFormat
 import java.util.Locale
 
 // ================= SCREEN =================
 @Composable
 fun DetailPesananCustomerScreen(
-    viewModel: OrderViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    laundryId: String? = null, // Parameter ini tidak dipakai lagi karena sudah di-handle ViewModel
+    viewModel: OrderViewModel = viewModel(factory = AppViewModelProvider.Factory), // Inject ViewModel
     onBack: () -> Unit = {},
-    onSubmitOrder: () -> Unit = {}
+    onPlaceOrder: (Int) -> Unit = {},
+    onSubmitOrder: () -> Unit = {} // Nanti ini akan memicu simpan ke database
 ) {
-    // 1. Ambil State Terbaru
-    val uiState by viewModel.uiState.collectAsState()
+    // Ambil State dari ViewModel
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // State Lokal (Hanya untuk UI Form yang belum masuk ViewModel)
+    // State Lokal untuk Form (Data input user)
+    val serviceOptions = listOf("Cuci & Lipat", "Cuci Kering", "Setrika Saja")
+    var selectedService by remember { mutableStateOf(serviceOptions[0]) }
     var itemCategory by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var payment by remember { mutableStateOf("Tunai") }
 
-    val serviceOptions = listOf("Cuci & Lipat", "Cuci Kering", "Setrika Saja")
-
     Scaffold(
         containerColor = Color(0xFFE0F7FA),
         bottomBar = {
-            // Tombol Pesan Aktif jika Laundry Loaded
-            if (uiState.laundry != null) {
+            // Tombol Pesan hanya aktif jika state Sukses
+            if (uiState is OrderUiState.Success) {
                 Button(
                     onClick = onSubmitOrder,
                     modifier = Modifier
@@ -69,41 +74,46 @@ fun DetailPesananCustomerScreen(
         }
     ) { padding ->
 
-        // 2. Logic Tampilan Berdasarkan State Data Class
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-
-            // A. Loading
-            if (uiState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // Handle Status UI (Loading / Success / Error)
+        when (val state = uiState) {
+            is OrderUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Color(0xFF3F7EC2))
                 }
             }
+            is OrderUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Gagal memuat data laundry: ${state.message}", color = Color.Red)
+                }
+            }
+            is OrderUiState.Success -> {
+                val laundry = state.laundry
 
-            // B. Success (Laundry Ada)
-            val laundry = uiState.laundry
-            if (laundry != null) {
+                // KONTEN UTAMA FORM
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .padding(padding)
                         .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
 
                     OrderHeader(onBack)
+
+                    // Kirim data laundry asli ke InfoCard
                     LaundryInfoCard(laundry)
 
                     Spacer(modifier = Modifier.height(16.dp))
                     SectionTitle("Layanan")
 
-                    // 1. DROPDOWN JENIS LAYANAN (Pindah ke ViewModel state)
+                    // 1. DROPDOWN JENIS LAYANAN
                     InputLabel("Jenis Layanan")
                     CustomDropdownInput(
                         options = serviceOptions,
-                        selectedOption = uiState.selectedService, // Dari ViewModel
-                        onOptionSelected = { viewModel.onServiceChanged(it) } // Ke ViewModel
+                        selectedOption = selectedService,
+                        onOptionSelected = { selectedService = it }
                     )
 
-                    // 2. KATEGORI ITEM
+                    // 2. TEXT INPUT KATEGORI ITEM
                     InputLabel("Kategori Item")
                     CustomTextField(
                         value = itemCategory,
@@ -111,21 +121,24 @@ fun DetailPesananCustomerScreen(
                         placeholder = "Contoh: Baju, Celana, Selimut"
                     )
 
-                    // 3. INPUT BERAT (Hitung Realtime)
+                    // 3. INPUT BERAT (Terhubung ke ViewModel)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             InputLabel("Berat (Kg)")
                             CustomTextField(
-                                value = uiState.weightInput, // Dari ViewModel
-                                onValueChange = { viewModel.onWeightChanged(it) }, // Ke ViewModel
+                                value = state.weightInput,
+                                onValueChange = { viewModel.onWeightChanged(it) }, // Hitung harga realtime
                                 placeholder = "0",
-                                keyboardType = KeyboardType.Number
+                                keyboardType = KeyboardType.Number // Keyboard Angka
                             )
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
-                            onClick = { /* TODO Scan */ },
-                            modifier = Modifier.weight(1f).padding(top = 20.dp).height(50.dp),
+                            onClick = { /* TODO: Fitur Scan */ },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(top = 20.dp)
+                                .height(50.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3F7EC2)),
                             shape = RoundedCornerShape(8.dp)
                         ) {
@@ -153,31 +166,23 @@ fun DetailPesananCustomerScreen(
 
                     PaymentOption("Bayar Tunai", payment == "Tunai") { payment = "Tunai" }
                     PaymentOption("Transfer Bank", payment == "Transfer") { payment = "Transfer" }
+                    PaymentOption("E-Wallet", payment == "E-Wallet") { payment = "E-Wallet" }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     SectionTitle("Estimasi Harga")
 
                     // Tampilkan Harga Hasil Hitungan
                     PricingSummaryCard(
-                        weight = uiState.weightInput,
-                        totalPrice = uiState.estimatedPrice
+                        weight = state.weightInput,
+                        totalPrice = state.estimatedPrice
                     )
 
                     Spacer(modifier = Modifier.height(80.dp))
                 }
             }
-
-            // C. Error
-            if (uiState.errorMessage != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.errorMessage!!, color = Color.Red)
-                }
-            }
         }
     }
 }
-
-// ... (Komponen Helper seperti OrderHeader, LaundryInfoCard, dll TETAP SAMA dan SUDAH BAGUS) ...
 
 // ================= KOMPONEN =================
 
@@ -415,14 +420,3 @@ fun InputLabel(text: String) {
         modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
     )
 }
-
-// Preview Data Dummy
-//@Preview(showBackground = true)
-//@Composable
-//fun OrderFormPreview() {
-//    CariLaundryTheme {
-//        // Karena preview susah pakai ViewModel, kita tidak bisa preview Logic-nya disini
-//        // Tapi UI dasarnya akan mirip dengan yang sudah kita buat.
-//        Text("Jalankan di Emulator untuk melihat hasil dengan ViewModel")
-//    }
-//}

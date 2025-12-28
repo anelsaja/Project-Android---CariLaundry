@@ -6,7 +6,6 @@ import com.example.carilaundry.domain.usecase.GetLaundryListUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -14,8 +13,8 @@ class HomeViewModel(
     private val getLaundryListUseCase: GetLaundryListUseCase
 ) : ViewModel() {
 
-    // Inisialisasi state awal (Loading false, List kosong, Error null)
-    private val _uiState = MutableStateFlow(HomeUiState())
+    // Inisialisasi state awal sebagai Loading
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
@@ -24,34 +23,18 @@ class HomeViewModel(
 
     fun getLaundryList() {
         viewModelScope.launch {
-            // 1. Set Loading = true, hapus error lama
-            _uiState.update { currentState ->
-                currentState.copy(
-                    isLoading = true,
-                    errorMessage = null
-                )
-            }
+            // 1. Set Loading state
+            _uiState.value = HomeUiState.Loading
 
             try {
                 // 2. Ambil data
                 val list = getLaundryListUseCase()
 
-                // 3. Jika sukses: Matikan loading, masukkan list
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        laundryList = list,
-                        errorMessage = null
-                    )
-                }
+                // 3. Jika sukses: Emit Success dengan data
+                _uiState.value = HomeUiState.Success(laundryList = list)
             } catch (e: IOException) {
-                // 4. Jika error: Matikan loading, simpan pesan error
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        errorMessage = "Gagal memuat data: ${e.message}"
-                    )
-                }
+                // 4. Jika error: Emit Error dengan pesan
+                _uiState.value = HomeUiState.Error(message = "Gagal memuat data: ${e.message}")
             }
         }
     }
