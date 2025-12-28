@@ -23,8 +23,8 @@ object AppViewModelProvider {
 
         // Initializer untuk HomeViewModel
         initializer {
-            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
-            HomeViewModel(application.container.getLaundryListUseCase)
+//            val application = (this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as CariLaundryApplication)
+            HomeViewModel()
         }
 
         // Initializer untuk DetailViewModel (Deskripsi Laundry Customer)
